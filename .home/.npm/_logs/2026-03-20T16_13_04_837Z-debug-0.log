@@ -1,0 +1,19 @@
+0 verbose cli /Users/hyeonseobkim/workspace/attendance-app/mobile/.local/node-v20.20.1-darwin-arm64/bin/node /Users/hyeonseobkim/workspace/attendance-app/mobile/.local/node-v20.20.1-darwin-arm64/lib/node_modules/npm/bin/npm-cli.js
+1 info using npm@10.8.2
+2 info using node@v20.20.1
+3 silly config load:file:/Users/hyeonseobkim/workspace/attendance-app/mobile/.local/node-v20.20.1-darwin-arm64/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/hyeonseobkim/workspace/attendance-app/mobile/.npmrc
+5 silly config load:file:/Users/hyeonseobkim/workspace/attendance-app/mobile/.home/.npmrc
+6 silly config load:file:/Users/hyeonseobkim/workspace/attendance-app/mobile/.local/node-v20.20.1-darwin-arm64/etc/npmrc
+7 verbose title npm exec expo config --json
+8 verbose argv "exec" "--" "expo" "config" "--json"
+9 verbose logfile logs-max:10 dir:/Users/hyeonseobkim/workspace/attendance-app/mobile/.home/.npm/_logs/2026-03-20T16_13_04_837Z-
+10 verbose logfile /Users/hyeonseobkim/workspace/attendance-app/mobile/.home/.npm/_logs/2026-03-20T16_13_04_837Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly logfile done cleaning log files
+13 verbose cwd /Users/hyeonseobkim/workspace/attendance-app/mobile
+14 verbose os Darwin 25.3.0
+15 verbose node v20.20.1
+16 verbose npm  v10.8.2
+17 verbose exit 0
+18 info ok

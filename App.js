@@ -1,0 +1,630 @@
+import { StatusBar } from "expo-status-bar";
+import * as Location from "expo-location";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+
+import {
+  COMPANY_LOCATION,
+  COMPANY_NAME,
+  COMPANY_RADIUS_METERS,
+} from "./src/constants/company";
+import AttendanceMap from "./src/components/AttendanceMap";
+import {
+  checkIn,
+  checkOut,
+  DEMO_MODE,
+  getCompanySetting,
+  getTodayAttendance,
+  login,
+} from "./src/services/api";
+import { getDistanceInMeters } from "./src/utils/location";
+
+const INITIAL_STATUS = {
+  checkedInAt: null,
+  checkedOutAt: null,
+};
+
+function formatTime(dateString) {
+  if (!dateString) {
+    return "-";
+  }
+
+  return new Date(dateString).toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export default function App() {
+  const [employeeCode, setEmployeeCode] = useState("EMP001");
+  const [password, setPassword] = useState("password1234");
+  const [auth, setAuth] = useState(null);
+  const [locationPermission, setLocationPermission] = useState(null);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [loadingLogin, setLoadingLogin] = useState(false);
+  const [submittingAttendance, setSubmittingAttendance] = useState(false);
+  const [attendance, setAttendance] = useState(INITIAL_STATUS);
+  const [attendanceMeta, setAttendanceMeta] = useState({
+    attendanceDate: null,
+    companyName: COMPANY_NAME,
+    status: null,
+  });
+  const [companySetting, setCompanySetting] = useState({
+    companyName: COMPANY_NAME,
+    latitude: COMPANY_LOCATION.latitude,
+    longitude: COMPANY_LOCATION.longitude,
+    allowedRadiusMeters: COMPANY_RADIUS_METERS,
+  });
+
+  useEffect(() => {
+    if (!auth?.token) {
+      return undefined;
+    }
+
+    let active = true;
+
+    async function loadTodayAttendance() {
+      try {
+        const todayAttendance = await getTodayAttendance({ token: auth.token });
+        if (active) {
+          setAttendance({
+            checkedInAt: todayAttendance.checkedInAt,
+            checkedOutAt: todayAttendance.checkedOutAt,
+          });
+          setAttendanceMeta({
+            attendanceDate: todayAttendance.attendanceDate,
+            companyName: todayAttendance.companyName || auth.user.companyName || COMPANY_NAME,
+            status: todayAttendance.status,
+          });
+        }
+      } catch (error) {
+        if (active) {
+          Alert.alert("상태 조회 실패", error.message || "오늘 출근 상태를 불러오지 못했습니다.");
+        }
+      }
+    }
+
+    loadTodayAttendance();
+
+    return () => {
+      active = false;
+    };
+  }, [auth?.token]);
+
+  useEffect(() => {
+    if (!auth?.token) {
+      return undefined;
+    }
+
+    let active = true;
+
+    async function loadCompanySetting() {
+      try {
+        const nextCompanySetting = await getCompanySetting({ token: auth.token });
+        if (active && nextCompanySetting) {
+          setCompanySetting(nextCompanySetting);
+          setAttendanceMeta((prev) => ({
+            ...prev,
+            companyName: nextCompanySetting.companyName || prev.companyName,
+          }));
+        }
+      } catch (error) {
+        if (active) {
+          Alert.alert("회사 설정 조회 실패", error.message || "회사 설정을 불러오지 못했습니다.");
+        }
+      }
+    }
+
+    loadCompanySetting();
+
+    return () => {
+      active = false;
+    };
+  }, [auth?.token]);
+
+  useEffect(() => {
+    if (!auth) {
+      return undefined;
+    }
+
+    let mounted = true;
+    let subscription;
+
+    async function watchLocation() {
+      setLoadingLocation(true);
+
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (!mounted) {
+        return;
+      }
+
+      setLocationPermission(status);
+
+      if (status !== "granted") {
+        setLoadingLocation(false);
+        return;
+      }
+
+      const initialPosition = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      if (!mounted) {
+        return;
+      }
+
+      setCurrentLocation({
+        latitude: initialPosition.coords.latitude,
+        longitude: initialPosition.coords.longitude,
+      });
+
+      subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          distanceInterval: 10,
+          timeInterval: 5000,
+        },
+        (position) => {
+          if (!mounted) {
+            return;
+          }
+
+          setCurrentLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        }
+      );
+
+      setLoadingLocation(false);
+    }
+
+    watchLocation().catch(() => {
+      if (mounted) {
+        setLoadingLocation(false);
+        Alert.alert("위치 확인 실패", "현재 위치를 가져오지 못했습니다.");
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription?.remove();
+    };
+  }, [auth]);
+
+  const distance = useMemo(() => {
+    if (!currentLocation) {
+      return null;
+    }
+
+    return getDistanceInMeters(currentLocation, {
+      latitude: companySetting.latitude,
+      longitude: companySetting.longitude,
+    });
+  }, [companySetting.latitude, companySetting.longitude, currentLocation]);
+
+  const canCheckIn =
+    Boolean(auth) &&
+    !attendance.checkedInAt &&
+    !submittingAttendance &&
+    typeof distance === "number" &&
+    distance <= companySetting.allowedRadiusMeters;
+
+  const canCheckOut =
+    Boolean(auth) &&
+    Boolean(currentLocation) &&
+    attendance.checkedInAt &&
+    !attendance.checkedOutAt &&
+    !submittingAttendance;
+
+  async function handleLogin() {
+    try {
+      setLoadingLogin(true);
+      const response = await login({ employeeCode, password });
+      setAuth(response);
+      setAttendance(INITIAL_STATUS);
+      setAttendanceMeta({
+        attendanceDate: null,
+        companyName: response.user.companyName || COMPANY_NAME,
+        status: null,
+      });
+      setCompanySetting({
+        companyName: response.user.companyName || COMPANY_NAME,
+        latitude: COMPANY_LOCATION.latitude,
+        longitude: COMPANY_LOCATION.longitude,
+        allowedRadiusMeters: COMPANY_RADIUS_METERS,
+      });
+    } catch (error) {
+      Alert.alert("로그인 실패", error.message || "다시 시도해 주세요.");
+    } finally {
+      setLoadingLogin(false);
+    }
+  }
+
+  async function handleCheckIn() {
+    if (!currentLocation || !auth?.token) {
+      return;
+    }
+
+    try {
+      setSubmittingAttendance(true);
+      const response = await checkIn({
+        token: auth.token,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+      });
+
+      setAttendance((prev) => ({
+        ...prev,
+        checkedInAt: response.checkedInAt || new Date().toISOString(),
+      }));
+      Alert.alert("출근 완료", response.message || "정상적으로 출근 처리되었습니다.");
+    } catch (error) {
+      Alert.alert("출근 처리 실패", error.message || "잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSubmittingAttendance(false);
+    }
+  }
+
+  async function handleCheckOut() {
+    if (!auth?.token || !currentLocation) {
+      return;
+    }
+
+    try {
+      setSubmittingAttendance(true);
+      const response = await checkOut({
+        token: auth.token,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+      });
+      setAttendance((prev) => ({
+        ...prev,
+        checkedOutAt: response.checkedOutAt || new Date().toISOString(),
+      }));
+      setAttendanceMeta((prev) => ({
+        ...prev,
+        status: response.status || "CHECKED_OUT",
+      }));
+      Alert.alert("퇴근 완료", response.message || "정상적으로 퇴근 처리되었습니다.");
+    } catch (error) {
+      Alert.alert("퇴근 처리 실패", error.message || "잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSubmittingAttendance(false);
+    }
+  }
+
+  if (!auth) {
+    return (
+      <SafeAreaView style={styles.authContainer}>
+        <StatusBar style="dark" />
+        <View style={styles.authCard}>
+          <Text style={styles.title}>출퇴근 체크</Text>
+          <Text style={styles.subtitle}>{COMPANY_NAME} 출퇴근 앱입니다. 로그인 후 현재 위치에서 출근을 기록해 보세요.</Text>
+          <TextInput
+            autoCapitalize="none"
+            onChangeText={setEmployeeCode}
+            placeholder="사번"
+            placeholderTextColor="#8c98ad"
+            style={styles.input}
+            value={employeeCode}
+          />
+          <TextInput
+            onChangeText={setPassword}
+            placeholder="비밀번호"
+            placeholderTextColor="#8c98ad"
+            secureTextEntry
+            style={styles.input}
+            value={password}
+          />
+          <Pressable
+            disabled={loadingLogin}
+            onPress={handleLogin}
+            style={[styles.primaryButton, loadingLogin && styles.buttonDisabled]}
+          >
+            {loadingLogin ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.primaryButtonText}>로그인</Text>
+            )}
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.welcomeText}>{auth.user.name}님</Text>
+          <Text style={styles.statusText}>
+            {auth.user.employeeCode} · 오늘 출근 {formatTime(attendance.checkedInAt)} / 퇴근 {formatTime(attendance.checkedOutAt)}
+          </Text>
+          <Text style={styles.companyText}>
+            {attendanceMeta.companyName || COMPANY_NAME} 반경 {companySetting.allowedRadiusMeters}m
+          </Text>
+        </View>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
+            {DEMO_MODE
+              ? distance == null
+                ? "DEMO"
+                : `DEMO ${Math.round(distance)}m`
+              : distance == null
+                ? "위치 확인 중"
+                : `${Math.round(distance)}m`}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.mapCard}>
+        {loadingLocation ? (
+          <View style={styles.centerState}>
+            <ActivityIndicator size="large" color="#1463ff" />
+            <Text style={styles.helperText}>현재 위치를 확인하고 있습니다.</Text>
+          </View>
+        ) : locationPermission !== "granted" ? (
+          <View style={styles.centerState}>
+            <Text style={styles.helperTitle}>위치 권한이 필요합니다.</Text>
+            <Text style={styles.helperText}>권한을 허용하면 회사 반경 안에서만 출근 버튼이 활성화됩니다.</Text>
+          </View>
+        ) : (
+          <AttendanceMap
+            companyLocation={{
+              latitude: companySetting.latitude,
+              longitude: companySetting.longitude,
+              latitudeDelta: COMPANY_LOCATION.latitudeDelta,
+              longitudeDelta: COMPANY_LOCATION.longitudeDelta,
+            }}
+            companyName={attendanceMeta.companyName || COMPANY_NAME}
+            companyRadiusMeters={companySetting.allowedRadiusMeters}
+            currentLocation={currentLocation}
+            style={styles.map}
+          />
+        )}
+      </View>
+
+      <View style={styles.bottomPanel}>
+        <Text style={styles.panelTitle}>오늘 상태</Text>
+        <Text style={styles.panelDescription}>
+          {attendance.checkedOutAt
+            ? "오늘 퇴근까지 완료되었습니다."
+            : attendance.checkedInAt
+              ? "출근 완료. 퇴근 버튼으로 오늘 기록을 마무리하세요."
+              : "회사 반경 안에 들어오면 출근 버튼이 활성화됩니다."}
+        </Text>
+        <Text style={styles.helperRow}>
+          기준 위치: {attendanceMeta.companyName || COMPANY_NAME}
+        </Text>
+        {DEMO_MODE ? (
+          <Text style={styles.demoText}>
+            데모 모드가 활성화되어 있어 백엔드 없이 로그인과 출퇴근 테스트가 가능합니다.
+          </Text>
+        ) : null}
+        {attendanceMeta.status ? (
+          <Text style={styles.helperRow}>상태: {attendanceMeta.status}</Text>
+        ) : null}
+        {attendanceMeta.attendanceDate ? (
+          <Text style={styles.helperRow}>근무일: {attendanceMeta.attendanceDate}</Text>
+        ) : null}
+        <Text style={styles.helperRow}>
+            오늘 출근 {formatTime(attendance.checkedInAt)} / 퇴근 {formatTime(attendance.checkedOutAt)}
+          </Text>
+
+        <Pressable
+          disabled={!canCheckIn}
+          onPress={handleCheckIn}
+          style={[styles.checkInButton, !canCheckIn && styles.buttonDisabled]}
+        >
+          {submittingAttendance && !attendance.checkedInAt ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.checkInButtonText}>출근하기</Text>
+          )}
+        </Pressable>
+
+        <Pressable
+          disabled={!canCheckOut}
+          onPress={handleCheckOut}
+          style={[styles.secondaryButton, !canCheckOut && styles.buttonDisabled]}
+        >
+          {submittingAttendance && attendance.checkedInAt && !attendance.checkedOutAt ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.secondaryButtonText}>퇴근하기</Text>
+          )}
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  authContainer: {
+    flex: 1,
+    backgroundColor: "#f3f6fb",
+    justifyContent: "center",
+    padding: 24,
+  },
+  authCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  title: {
+    color: "#172033",
+    fontSize: 28,
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: "#5a657a",
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  input: {
+    backgroundColor: "#eef3fb",
+    borderRadius: 16,
+    color: "#172033",
+    fontSize: 16,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#eef3fb",
+  },
+  header: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 16,
+  },
+  welcomeText: {
+    color: "#172033",
+    fontSize: 24,
+    fontWeight: "800",
+  },
+  statusText: {
+    color: "#536076",
+    fontSize: 14,
+    marginTop: 4,
+  },
+  companyText: {
+    color: "#6a7487",
+    fontSize: 13,
+    marginTop: 4,
+  },
+  badge: {
+    backgroundColor: "#dbe8ff",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  badgeText: {
+    color: "#1447b8",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  mapCard: {
+    flex: 1,
+    marginHorizontal: 16,
+    overflow: "hidden",
+    borderRadius: 28,
+    backgroundColor: "#dfe7f4",
+  },
+  map: {
+    flex: 1,
+  },
+  centerState: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  helperTitle: {
+    color: "#172033",
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  helperText: {
+    color: "#5c677b",
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 12,
+    textAlign: "center",
+  },
+  bottomPanel: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  panelTitle: {
+    color: "#172033",
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+  panelDescription: {
+    color: "#59657a",
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+  helperRow: {
+    color: "#7b8598",
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  demoText: {
+    color: "#1447b8",
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  primaryButton: {
+    alignItems: "center",
+    backgroundColor: "#1463ff",
+    borderRadius: 18,
+    justifyContent: "center",
+    minHeight: 56,
+  },
+  primaryButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  checkInButton: {
+    alignItems: "center",
+    backgroundColor: "#1463ff",
+    borderRadius: 22,
+    justifyContent: "center",
+    minHeight: 68,
+    marginBottom: 12,
+  },
+  checkInButtonText: {
+    color: "#ffffff",
+    fontSize: 22,
+    fontWeight: "800",
+  },
+  secondaryButton: {
+    alignItems: "center",
+    backgroundColor: "#172033",
+    borderRadius: 18,
+    justifyContent: "center",
+    minHeight: 54,
+  },
+  secondaryButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  buttonDisabled: {
+    opacity: 0.45,
+  },
+});

@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Attendance App",
+    "slug": "attendance-app-mobile",
+    "version": "1.0.0",
+    "scheme": "attendanceapp",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#f5f7fb"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.attendance.mobile",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "출퇴근 체크를 위해 현재 위치를 사용합니다."
+      }
+    },
+    "android": {
+      "package": "com.attendance.mobile",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#f5f7fb"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "출퇴근 체크를 위해 현재 위치를 사용합니다."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9b6d46ac-e24b-47cd-b191-1026105f1a2e"
+      }
+    }
+  }
+}

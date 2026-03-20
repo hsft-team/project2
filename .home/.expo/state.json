@@ -1,0 +1,9 @@
+{
+  "uuid": "0083a54b-fbf6-4314-93ef-855aba55bdea",
+  "auth": {
+    "sessionSecret": "{\"id\":\"19a5dd71-cfbd-44f3-bb17-845678e91b4b\",\"version\":2}",
+    "userId": "f1cb52ca-9a19-495f-b169-8f8590871f97",
+    "username": "re1560",
+    "currentConnection": "Username-Password-Authentication"
+  }
+}
