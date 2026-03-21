@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -59,12 +60,19 @@ export default function App() {
     companyName: COMPANY_NAME,
     status: null,
   });
+  const [errorMessage, setErrorMessage] = useState("");
   const [companySetting, setCompanySetting] = useState({
     companyName: COMPANY_NAME,
     latitude: COMPANY_LOCATION.latitude,
     longitude: COMPANY_LOCATION.longitude,
     allowedRadiusMeters: COMPANY_RADIUS_METERS,
   });
+
+  function showError(title, message) {
+    const nextMessage = message || "알 수 없는 오류가 발생했습니다.";
+    setErrorMessage(nextMessage);
+    Alert.alert(title, nextMessage);
+  }
 
   useEffect(() => {
     if (!auth?.token) {
@@ -89,7 +97,7 @@ export default function App() {
         }
       } catch (error) {
         if (active) {
-          Alert.alert("상태 조회 실패", error.message || "오늘 출근 상태를 불러오지 못했습니다.");
+          showError("상태 조회 실패", error.message || "오늘 출근 상태를 불러오지 못했습니다.");
         }
       }
     }
@@ -120,7 +128,7 @@ export default function App() {
         }
       } catch (error) {
         if (active) {
-          Alert.alert("회사 설정 조회 실패", error.message || "회사 설정을 불러오지 못했습니다.");
+          showError("회사 설정 조회 실패", error.message || "회사 설정을 불러오지 못했습니다.");
         }
       }
     }
@@ -192,7 +200,7 @@ export default function App() {
     watchLocation().catch(() => {
       if (mounted) {
         setLoadingLocation(false);
-        Alert.alert("위치 확인 실패", "현재 위치를 가져오지 못했습니다.");
+        showError("위치 확인 실패", "현재 위치를 가져오지 못했습니다.");
       }
     });
 
@@ -230,6 +238,7 @@ export default function App() {
   async function handleLogin() {
     try {
       setLoadingLogin(true);
+      setErrorMessage("");
       const response = await login({ employeeCode, password });
       setAuth(response);
       setAttendance(INITIAL_STATUS);
@@ -245,7 +254,7 @@ export default function App() {
         allowedRadiusMeters: COMPANY_RADIUS_METERS,
       });
     } catch (error) {
-      Alert.alert("로그인 실패", error.message || "다시 시도해 주세요.");
+      showError("로그인 실패", error.message || "다시 시도해 주세요.");
     } finally {
       setLoadingLogin(false);
     }
@@ -258,6 +267,7 @@ export default function App() {
 
     try {
       setSubmittingAttendance(true);
+      setErrorMessage("");
       const response = await checkIn({
         token: auth.token,
         latitude: currentLocation.latitude,
@@ -270,7 +280,7 @@ export default function App() {
       }));
       Alert.alert("출근 완료", response.message || "정상적으로 출근 처리되었습니다.");
     } catch (error) {
-      Alert.alert("출근 처리 실패", error.message || "잠시 후 다시 시도해 주세요.");
+      showError("출근 처리 실패", error.message || "잠시 후 다시 시도해 주세요.");
     } finally {
       setSubmittingAttendance(false);
     }
@@ -283,6 +293,7 @@ export default function App() {
 
     try {
       setSubmittingAttendance(true);
+      setErrorMessage("");
       const response = await checkOut({
         token: auth.token,
         latitude: currentLocation.latitude,
@@ -298,7 +309,7 @@ export default function App() {
       }));
       Alert.alert("퇴근 완료", response.message || "정상적으로 퇴근 처리되었습니다.");
     } catch (error) {
-      Alert.alert("퇴근 처리 실패", error.message || "잠시 후 다시 시도해 주세요.");
+      showError("퇴근 처리 실패", error.message || "잠시 후 다시 시도해 주세요.");
     } finally {
       setSubmittingAttendance(false);
     }
@@ -310,7 +321,9 @@ export default function App() {
         <StatusBar style="dark" />
         <View style={styles.authCard}>
           <Text style={styles.title}>출퇴근 체크</Text>
-          <Text style={styles.subtitle}>{COMPANY_NAME} 출퇴근 앱입니다. 로그인 후 현재 위치에서 출근을 기록해 보세요.</Text>
+          <Text style={styles.subtitle}>
+            {COMPANY_NAME} 출퇴근 서비스입니다. 로그인 후 브라우저에서 현재 위치를 확인하고 출근과 퇴근을 기록해 보세요.
+          </Text>
           <TextInput
             autoCapitalize="none"
             onChangeText={setEmployeeCode}
@@ -346,6 +359,11 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
+      {errorMessage ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>{errorMessage}</Text>
+        </View>
+      ) : null}
       <View style={styles.header}>
         <View>
           <Text style={styles.welcomeText}>{auth.user.name}님</Text>
@@ -378,7 +396,11 @@ export default function App() {
         ) : locationPermission !== "granted" ? (
           <View style={styles.centerState}>
             <Text style={styles.helperTitle}>위치 권한이 필요합니다.</Text>
-            <Text style={styles.helperText}>권한을 허용하면 회사 반경 안에서만 출근 버튼이 활성화됩니다.</Text>
+            <Text style={styles.helperText}>
+              {Platform.OS === "web"
+                ? "브라우저 주소창 근처의 위치 권한을 허용하면 회사 반경 안에서만 출근 버튼이 활성화됩니다."
+                : "권한을 허용하면 회사 반경 안에서만 출근 버튼이 활성화됩니다."}
+            </Text>
           </View>
         ) : (
           <AttendanceMap
@@ -411,6 +433,11 @@ export default function App() {
         {DEMO_MODE ? (
           <Text style={styles.demoText}>
             데모 모드가 활성화되어 있어 백엔드 없이 로그인과 출퇴근 테스트가 가능합니다.
+          </Text>
+        ) : null}
+        {Platform.OS === "web" ? (
+          <Text style={styles.helperRow}>
+            웹 서비스 모드: iPhone Safari 또는 데스크톱 브라우저에서 바로 사용할 수 있습니다.
           </Text>
         ) : null}
         {attendanceMeta.status ? (
@@ -492,6 +519,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#eef3fb",
+  },
+  errorBanner: {
+    backgroundColor: "#ffe3e3",
+    borderBottomColor: "#ffc9c9",
+    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  errorBannerText: {
+    color: "#c92a2a",
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
   },
   header: {
     alignItems: "center",

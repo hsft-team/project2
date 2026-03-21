@@ -18,7 +18,8 @@
       "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "출퇴근 체크를 위해 현재 위치를 사용합니다."
+        "NSLocationWhenInUseUsageDescription": "출퇴근 체크를 위해 현재 위치를 사용합니다.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -42,6 +43,14 @@
         }
       ]
     ],
+    "web": {
+      "name": "Attendance App",
+      "shortName": "Attendance",
+      "themeColor": "#1463ff",
+      "backgroundColor": "#f5f7fb",
+      "display": "standalone",
+      "bundler": "metro"
+    },
     "extra": {
       "eas": {
         "projectId": "9b6d46ac-e24b-47cd-b191-1026105f1a2e"

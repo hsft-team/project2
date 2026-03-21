@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL || "https://gps-wheel-stewart-cap.trycloudflare.com/api";
+  process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:8090/api";
 export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === "true";
 
 const api = axios.create({

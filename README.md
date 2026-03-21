@@ -37,42 +37,37 @@ npm run start:local
 
 현재 기본값은 백엔드 연동 모드입니다.
 
-- 기본 API 주소: `http://192.168.123.159:8080/api`
+- 기본 API 주소: `http://localhost:8090/api`
 - iPhone 실기기 테스트 시 Mac IP가 바뀌면 `EXPO_PUBLIC_API_BASE_URL`도 같이 바꿔야 합니다.
 - 데모 모드 실행: `EXPO_PUBLIC_DEMO_MODE=true npm run start:local`
-- 실서버 연결: `EXPO_PUBLIC_API_BASE_URL=http://<your-mac-ip>:8080/api npm run start:local`
+- 실서버 연결: `EXPO_PUBLIC_API_BASE_URL=http://<your-mac-ip>:8090/api npm run start:local`
 
 백엔드 기준 로그인 계정:
 
 - 사원: `EMP001 / password1234`
 - 관리자: `ADMIN001 / admin1234`
 
-## iPhone 설치
+## 웹 서비스 실행
 
-이 프로젝트는 `EAS Build` 기준으로 두 가지 설치 경로를 준비해 두었습니다.
+브라우저 기반 출퇴근 서비스로 사용할 수 있습니다.
 
-### 1. Internal Distribution
-
-테스트용으로 iPhone에 직접 설치하는 빌드입니다.
+### 개발 서버
 
 ```bash
-npx eas login
-npx eas build:configure
-npx eas build -p ios --profile preview
+npm run web:local
 ```
 
-- 설치 전에 Apple Developer 계정 로그인이 필요합니다.
-- 최초 1회 `npx eas login` 과 `npx eas build:configure` 를 실행하면 EAS 프로젝트 연결과 자격 증명 설정이 진행됩니다.
-- 연결이 완료되면 Expo가 실제 `projectId`를 자동으로 넣을 수 있습니다.
-
-### 2. TestFlight
-
-배포형 iOS 빌드를 만들고 TestFlight로 올리는 경로입니다.
+### 정적 빌드
 
 ```bash
-npx eas build -p ios --profile production
-npx eas submit -p ios --profile production
+npx expo export --platform web
 ```
 
-- TestFlight 제출 전 [eas.json](/Users/hyeonseobkim/workspace/attendance-app/mobile/eas.json)의 `submit.production.ios.ascAppId`를 실제 App Store Connect 앱 ID로 바꿔야 합니다.
-- [app.json](/Users/hyeonseobkim/workspace/attendance-app/mobile/app.json)의 기본 번들 ID는 `com.attendance.mobile` 입니다. 실제 배포 전 팀 소유 번들 ID로 바꾸는 것을 권장합니다.
+빌드 결과물은 `dist/` 폴더에 생성됩니다.
+
+### 운영 시 참고
+
+- 브라우저에서 위치 권한 허용이 필요합니다.
+- 백엔드 주소는 [src/services/api.js](/Users/hyeonseobkim/workspace/attendance-app/mobile/src/services/api.js) 또는 `EXPO_PUBLIC_API_BASE_URL` 로 설정합니다.
+- iPhone Safari에서도 웹앱 형태로 바로 사용할 수 있습니다.
+- iPhone에서 Safari로 접속 후 `공유 > 홈 화면에 추가`를 선택하면 앱처럼 실행할 수 있습니다.
