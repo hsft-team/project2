@@ -27,12 +27,29 @@ import {
   getTodayAttendance,
   login,
 } from "./src/services/api";
+import {
+  clearAuth,
+  getDeviceName,
+  getOrCreateDeviceId,
+  loadAuth,
+  saveAuth,
+} from "./src/utils/authStorage";
 import { getDistanceInMeters } from "./src/utils/location";
 
 const INITIAL_STATUS = {
   checkedInAt: null,
   checkedOutAt: null,
 };
+const MAX_LOCATION_ACCURACY_METERS = 100;
+
+function mapPositionToLocation(position) {
+  return {
+    latitude: position.coords.latitude,
+    longitude: position.coords.longitude,
+    accuracyMeters: position.coords.accuracy ?? null,
+    capturedAt: new Date(position.timestamp ?? Date.now()).toISOString(),
+  };
+}
 
 function formatTime(dateString) {
   if (!dateString) {
@@ -43,6 +60,14 @@ function formatTime(dateString) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function isAuthErrorMessage(message) {
+  if (!message) {
+    return false;
+  }
+
+  return message.includes("인증") || message.includes("로그인") || message.includes("권한");
 }
 
 export default function App() {
@@ -67,6 +92,18 @@ export default function App() {
     longitude: COMPANY_LOCATION.longitude,
     allowedRadiusMeters: COMPANY_RADIUS_METERS,
   });
+
+  useEffect(() => {
+    const savedAuth = loadAuth();
+    if (savedAuth?.token) {
+      setAuth(savedAuth);
+      setAttendanceMeta({
+        attendanceDate: null,
+        companyName: savedAuth.user?.companyName || COMPANY_NAME,
+        status: null,
+      });
+    }
+  }, []);
   const isWeb = Platform.OS === "web";
   const isSecureWebContext =
     !isWeb ||
@@ -123,10 +160,7 @@ export default function App() {
         accuracy: Location.Accuracy.High,
       });
 
-      setCurrentLocation({
-        latitude: currentPosition.coords.latitude,
-        longitude: currentPosition.coords.longitude,
-      });
+      setCurrentLocation(mapPositionToLocation(currentPosition));
       setLocationPermission("granted");
     } catch (error) {
       showError("위치 권한 필요", error.message || webLocationHelpText);
@@ -156,6 +190,11 @@ export default function App() {
         }
       } catch (error) {
         if (active) {
+          if (isAuthErrorMessage(error.message)) {
+            clearAuth();
+            setAuth(null);
+            return;
+          }
           showError("상태 조회 실패", error.message || "오늘 출근 상태를 불러오지 못했습니다.");
         }
       }
@@ -187,6 +226,11 @@ export default function App() {
         }
       } catch (error) {
         if (active) {
+          if (isAuthErrorMessage(error.message)) {
+            clearAuth();
+            setAuth(null);
+            return;
+          }
           showError("회사 설정 조회 실패", error.message || "회사 설정을 불러오지 못했습니다.");
         }
       }
@@ -213,8 +257,7 @@ export default function App() {
       }
 
       setCurrentLocation({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
+        ...mapPositionToLocation(position),
       });
     }
 
@@ -257,6 +300,8 @@ export default function App() {
     !attendance.checkedInAt &&
     !submittingAttendance &&
     typeof distance === "number" &&
+    typeof currentLocation?.accuracyMeters === "number" &&
+    currentLocation.accuracyMeters <= MAX_LOCATION_ACCURACY_METERS &&
     distance <= companySetting.allowedRadiusMeters;
 
   const canCheckOut =
@@ -264,14 +309,24 @@ export default function App() {
     Boolean(currentLocation) &&
     attendance.checkedInAt &&
     !attendance.checkedOutAt &&
-    !submittingAttendance;
+    !submittingAttendance &&
+    typeof distance === "number" &&
+    typeof currentLocation?.accuracyMeters === "number" &&
+    currentLocation.accuracyMeters <= MAX_LOCATION_ACCURACY_METERS &&
+    distance <= companySetting.allowedRadiusMeters;
 
   async function handleLogin() {
     try {
       setLoadingLogin(true);
       setErrorMessage("");
-      const response = await login({ employeeCode, password });
+      const response = await login({
+        employeeCode,
+        password,
+        deviceId: getOrCreateDeviceId(),
+        deviceName: getDeviceName(),
+      });
       setAuth(response);
+      saveAuth(response);
       setAttendance(INITIAL_STATUS);
       setAttendanceMeta({
         attendanceDate: null,
@@ -303,6 +358,8 @@ export default function App() {
         token: auth.token,
         latitude: currentLocation.latitude,
         longitude: currentLocation.longitude,
+        accuracyMeters: currentLocation.accuracyMeters,
+        capturedAt: currentLocation.capturedAt,
       });
 
       setAttendance((prev) => ({
@@ -329,6 +386,8 @@ export default function App() {
         token: auth.token,
         latitude: currentLocation.latitude,
         longitude: currentLocation.longitude,
+        accuracyMeters: currentLocation.accuracyMeters,
+        capturedAt: currentLocation.capturedAt,
       });
       setAttendance((prev) => ({
         ...prev,
@@ -353,7 +412,7 @@ export default function App() {
         <View style={styles.authCard}>
           <Text style={styles.title}>출퇴근 체크</Text>
           <Text style={styles.subtitle}>
-            {COMPANY_NAME} 출퇴근 서비스입니다. 로그인 후 브라우저에서 현재 위치를 확인하고 출근과 퇴근을 기록해 보세요.
+            {COMPANY_NAME} 출퇴근 서비스입니다. 로그인 후 브라우저에서 현재 위치를 확인하고 출근과 퇴근을 기록해 보세요. 로그인 상태는 같은 단말에서 최대 1년 유지됩니다.
           </Text>
           <TextInput
             autoCapitalize="none"
@@ -466,8 +525,8 @@ export default function App() {
           {attendance.checkedOutAt
             ? "오늘 퇴근까지 완료되었습니다."
             : attendance.checkedInAt
-              ? "출근 완료. 퇴근 버튼으로 오늘 기록을 마무리하세요."
-              : "회사 반경 안에 들어오면 출근 버튼이 활성화됩니다."}
+              ? "출근 완료. 회사 반경 안에서 정확한 위치가 확인되면 퇴근 버튼이 활성화됩니다."
+              : "회사 반경 안에서 정확한 위치가 확인되면 출근 버튼이 활성화됩니다."}
         </Text>
         <Text style={styles.helperRow}>
           기준 위치: {attendanceMeta.companyName || COMPANY_NAME}
@@ -487,6 +546,12 @@ export default function App() {
         ) : null}
         {attendanceMeta.attendanceDate ? (
           <Text style={styles.helperRow}>근무일: {attendanceMeta.attendanceDate}</Text>
+        ) : null}
+        {typeof currentLocation?.accuracyMeters === "number" ? (
+          <Text style={styles.helperRow}>위치 정확도: 약 {Math.round(currentLocation.accuracyMeters)}m</Text>
+        ) : null}
+        {auth?.expiresAt ? (
+          <Text style={styles.helperRow}>로그인 유지 만료: {new Date(auth.expiresAt).toLocaleDateString("ko-KR")}</Text>
         ) : null}
         <Text style={styles.helperRow}>
             오늘 출근 {formatTime(attendance.checkedInAt)} / 퇴근 {formatTime(attendance.checkedOutAt)}

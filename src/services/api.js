@@ -57,7 +57,7 @@ function normalizeCompanySetting(data) {
   };
 }
 
-export async function login({ employeeCode, password }) {
+export async function login({ employeeCode, password, deviceId, deviceName }) {
   if (DEMO_MODE) {
     if (!employeeCode || !password) {
       throw new Error("사번과 비밀번호를 입력해 주세요.");
@@ -66,6 +66,7 @@ export async function login({ employeeCode, password }) {
     return {
       token: "demo-token",
       tokenType: "Bearer",
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       user: {
         id: employeeCode,
         name: employeeCode === "ADMIN001" ? "관리자" : "홍길동",
@@ -77,11 +78,17 @@ export async function login({ employeeCode, password }) {
   }
 
   try {
-    const response = await api.post("/auth/login", { employeeCode, password });
+    const response = await api.post("/auth/login", {
+      employeeCode,
+      password,
+      deviceId,
+      deviceName,
+    });
 
     return {
       token: response.data?.accessToken,
       tokenType: response.data?.tokenType || "Bearer",
+      expiresAt: response.data?.accessTokenExpiresAt,
       user: getUserPayload(response.data, employeeCode),
     };
   } catch (error) {
@@ -135,7 +142,7 @@ export async function getCompanySetting({ token }) {
   }
 }
 
-export async function checkIn({ token, latitude, longitude }) {
+export async function checkIn({ token, latitude, longitude, accuracyMeters, capturedAt }) {
   if (DEMO_MODE) {
     return {
       status: "checked-in",
@@ -148,7 +155,7 @@ export async function checkIn({ token, latitude, longitude }) {
   try {
     const response = await api.post(
       "/attendance/check-in",
-      { latitude, longitude },
+      { latitude, longitude, accuracyMeters, capturedAt },
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -166,7 +173,7 @@ export async function checkIn({ token, latitude, longitude }) {
   }
 }
 
-export async function checkOut({ token, latitude, longitude }) {
+export async function checkOut({ token, latitude, longitude, accuracyMeters, capturedAt }) {
   if (DEMO_MODE) {
     return {
       status: "checked-out",
@@ -178,7 +185,7 @@ export async function checkOut({ token, latitude, longitude }) {
   try {
     const response = await api.post(
       "/attendance/check-out",
-      { latitude, longitude },
+      { latitude, longitude, accuracyMeters, capturedAt },
       {
         headers: {
           Authorization: `Bearer ${token}`,
