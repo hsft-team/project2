@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:8090/api";
+  process.env.EXPO_PUBLIC_API_BASE_URL || "http://api.hsft.io.kr/api";
 export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === "true";
 
 const api = axios.create({

@@ -8,6 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build:web:prod": "expo export --platform web",
+    "serve:web:prod": "serve -s dist -l 4173",
     "start:local": "mkdir -p .home && HOME=$PWD/.home PATH=$PWD/.local/node-v20.20.1-darwin-arm64/bin:$PATH expo start",
     "android:local": "mkdir -p .home && HOME=$PWD/.home PATH=$PWD/.local/node-v20.20.1-darwin-arm64/bin:$PATH expo start --android",
     "ios:local": "mkdir -p .home && HOME=$PWD/.home PATH=$PWD/.local/node-v20.20.1-darwin-arm64/bin:$PATH expo start --ios",
@@ -29,6 +31,7 @@
   },
   "devDependencies": {
     "babel-preset-expo": "~54.0.10",
-    "eas-cli": "^18.4.0"
+    "eas-cli": "^18.4.0",
+    "serve": "^14.2.4"
   }
 }
