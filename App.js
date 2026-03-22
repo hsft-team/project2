@@ -67,11 +67,70 @@ export default function App() {
     longitude: COMPANY_LOCATION.longitude,
     allowedRadiusMeters: COMPANY_RADIUS_METERS,
   });
+  const isWeb = Platform.OS === "web";
+  const isSecureWebContext =
+    !isWeb ||
+    window.isSecureContext ||
+    window.location.hostname === "localhost";
+  const webLocationHelpText = !isSecureWebContext
+    ? "위치 권한은 HTTPS에서만 동작합니다. https://m.hsft.io.kr 로 접속한 뒤 다시 시도해 주세요."
+    : "Safari 주소창의 aA > 웹 사이트 설정 > 위치 > 허용으로 바꾸면 회사 반경 안에서 출근 버튼이 활성화됩니다.";
 
   function showError(title, message) {
     const nextMessage = message || "알 수 없는 오류가 발생했습니다.";
     setErrorMessage(nextMessage);
     Alert.alert(title, nextMessage);
+  }
+
+  async function requestAndWatchLocation(onLocationChange) {
+    setLoadingLocation(true);
+
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    setLocationPermission(status);
+
+    if (status !== "granted") {
+      setLoadingLocation(false);
+      return undefined;
+    }
+
+    const initialPosition = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+
+    onLocationChange(initialPosition);
+
+    const subscription = await Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.High,
+        distanceInterval: 10,
+        timeInterval: 5000,
+      },
+      onLocationChange
+    );
+
+    setLoadingLocation(false);
+    return subscription;
+  }
+
+  async function handleRetryLocationPermission() {
+    if (!auth) {
+      return;
+    }
+
+    try {
+      setErrorMessage("");
+      const currentPosition = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      setCurrentLocation({
+        latitude: currentPosition.coords.latitude,
+        longitude: currentPosition.coords.longitude,
+      });
+      setLocationPermission("granted");
+    } catch (error) {
+      showError("위치 권한 필요", error.message || webLocationHelpText);
+    }
   }
 
   useEffect(() => {
@@ -148,53 +207,25 @@ export default function App() {
     let mounted = true;
     let subscription;
 
-    async function watchLocation() {
-      setLoadingLocation(true);
-
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (!mounted) {
-        return;
-      }
-
-      setLocationPermission(status);
-
-      if (status !== "granted") {
-        setLoadingLocation(false);
-        return;
-      }
-
-      const initialPosition = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
+    function updateLocation(position) {
       if (!mounted) {
         return;
       }
 
       setCurrentLocation({
-        latitude: initialPosition.coords.latitude,
-        longitude: initialPosition.coords.longitude,
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
       });
+    }
 
-      subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          distanceInterval: 10,
-          timeInterval: 5000,
-        },
-        (position) => {
-          if (!mounted) {
-            return;
-          }
+    async function watchLocation() {
+      const nextSubscription = await requestAndWatchLocation(updateLocation);
+      if (!mounted) {
+        nextSubscription?.remove();
+        return;
+      }
 
-          setCurrentLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        }
-      );
-
-      setLoadingLocation(false);
+      subscription = nextSubscription;
     }
 
     watchLocation().catch(() => {
@@ -398,9 +429,20 @@ export default function App() {
             <Text style={styles.helperTitle}>위치 권한이 필요합니다.</Text>
             <Text style={styles.helperText}>
               {Platform.OS === "web"
-                ? "브라우저 주소창 근처의 위치 권한을 허용하면 회사 반경 안에서만 출근 버튼이 활성화됩니다."
+                ? webLocationHelpText
                 : "권한을 허용하면 회사 반경 안에서만 출근 버튼이 활성화됩니다."}
             </Text>
+            <Pressable
+              onPress={handleRetryLocationPermission}
+              style={styles.permissionButton}
+            >
+              <Text style={styles.permissionButtonText}>위치 권한 다시 요청</Text>
+            </Pressable>
+            {Platform.OS === "web" ? (
+              <Text style={styles.permissionHint}>
+                iPhone Safari에서는 주소창 왼쪽의 aA 메뉴에서 위치 권한을 다시 허용할 수 있습니다.
+              </Text>
+            ) : null}
           </View>
         ) : (
           <AttendanceMap
@@ -593,6 +635,26 @@ const styles = StyleSheet.create({
     color: "#5c677b",
     fontSize: 15,
     lineHeight: 22,
+    marginTop: 12,
+    textAlign: "center",
+  },
+  permissionButton: {
+    alignItems: "center",
+    backgroundColor: "#1463ff",
+    borderRadius: 16,
+    marginTop: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  permissionButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  permissionHint: {
+    color: "#7b8598",
+    fontSize: 13,
+    lineHeight: 20,
     marginTop: 12,
     textAlign: "center",
   },
