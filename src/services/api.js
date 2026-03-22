@@ -142,6 +142,26 @@ export async function getCompanySetting({ token }) {
   }
 }
 
+export async function getPublicCompanySetting() {
+  if (DEMO_MODE) {
+    return normalizeCompanySetting({
+      companyId: 1,
+      companyName: "OpenAI Seoul Office",
+      latitude: 37.5665,
+      longitude: 126.978,
+      allowedRadiusMeters: 100,
+      lateAfterTime: "09:00:00",
+    });
+  }
+
+  try {
+    const response = await api.get("/attendance/public/company-setting");
+    return normalizeCompanySetting(response.data);
+  } catch (error) {
+    return null;
+  }
+}
+
 export async function checkIn({ token, latitude, longitude, accuracyMeters, capturedAt }) {
   if (DEMO_MODE) {
     return {

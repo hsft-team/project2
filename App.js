@@ -24,6 +24,7 @@ import {
   checkOut,
   DEMO_MODE,
   getCompanySetting,
+  getPublicCompanySetting,
   getTodayAttendance,
   login,
 } from "./src/services/api";
@@ -103,6 +104,32 @@ export default function App() {
         status: null,
       });
     }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadPublicCompanySetting() {
+      const nextCompanySetting = await getPublicCompanySetting();
+      if (!active || !nextCompanySetting) {
+        return;
+      }
+
+      setCompanySetting((prev) => ({
+        ...prev,
+        ...nextCompanySetting,
+      }));
+      setAttendanceMeta((prev) => ({
+        ...prev,
+        companyName: nextCompanySetting.companyName || prev.companyName,
+      }));
+    }
+
+    loadPublicCompanySetting();
+
+    return () => {
+      active = false;
+    };
   }, []);
   const isWeb = Platform.OS === "web";
   const isSecureWebContext =
@@ -412,7 +439,7 @@ export default function App() {
         <View style={styles.authCard}>
           <Text style={styles.title}>출퇴근 체크</Text>
           <Text style={styles.subtitle}>
-            {COMPANY_NAME} 출퇴근 서비스입니다. 로그인 후 브라우저에서 현재 위치를 확인하고 출근과 퇴근을 기록해 보세요. 로그인 상태는 같은 단말에서 최대 1년 유지됩니다.
+            {attendanceMeta.companyName || companySetting.companyName || COMPANY_NAME} 출퇴근 서비스입니다. 로그인 후 브라우저에서 현재 위치를 확인하고 출근과 퇴근을 기록해 보세요. 로그인 상태는 같은 단말에서 최대 1년 유지됩니다.
           </Text>
           <TextInput
             autoCapitalize="none"
