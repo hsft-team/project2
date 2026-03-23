@@ -45,6 +45,90 @@ const INITIAL_STATUS = {
 };
 const MAX_LOCATION_ACCURACY_METERS = 100;
 
+function parseNoticeMessage(message) {
+  if (!message?.trim()) {
+    return [];
+  }
+
+  return message
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().length > 0)
+    .map((line, index) => {
+      if (line.startsWith("## ")) {
+        return {
+          key: `heading-${index}`,
+          type: "heading",
+          text: line.slice(3).trim(),
+        };
+      }
+
+      if (line.startsWith("- ")) {
+        return {
+          key: `bullet-${index}`,
+          type: "bullet",
+          text: line.slice(2).trim(),
+        };
+      }
+
+      return {
+        key: `paragraph-${index}`,
+        type: "paragraph",
+        text: line.trim(),
+      };
+    });
+}
+
+function renderNoticeInline(text, textStyle, boldStyle) {
+  const parts = [];
+  const pattern = /\*\*(.+?)\*\*/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({
+        key: `text-${lastIndex}`,
+        text: text.slice(lastIndex, match.index),
+        bold: false,
+      });
+    }
+
+    parts.push({
+      key: `bold-${match.index}`,
+      text: match[1],
+      bold: true,
+    });
+    lastIndex = pattern.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push({
+      key: `text-tail-${lastIndex}`,
+      text: text.slice(lastIndex),
+      bold: false,
+    });
+  }
+
+  if (parts.length === 0) {
+    parts.push({
+      key: "text-full",
+      text,
+      bold: false,
+    });
+  }
+
+  return (
+    <Text style={textStyle}>
+      {parts.map((part) => (
+        <Text key={part.key} style={part.bold ? boldStyle : null}>
+          {part.text}
+        </Text>
+      ))}
+    </Text>
+  );
+}
+
 function getSeoulNowInfo() {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
@@ -384,6 +468,10 @@ export default function App() {
   const canCheckOut =
     Boolean(auth) &&
     !submittingAttendance;
+  const noticeBlocks = useMemo(
+    () => parseNoticeMessage(companySetting.noticeMessage),
+    [companySetting.noticeMessage]
+  );
 
   async function handleLogin() {
     try {
@@ -746,11 +834,46 @@ export default function App() {
 
       <View style={styles.bottomPanel}>
         <Text style={styles.panelTitle}>공지사항</Text>
-        <Text style={styles.panelDescription}>
-          {companySetting.noticeMessage?.trim()
-            ? companySetting.noticeMessage
-            : "등록된 공지사항이 없습니다."}
-        </Text>
+        {noticeBlocks.length > 0 ? (
+          <View style={styles.noticeContent}>
+            {noticeBlocks.map((block) => {
+              if (block.type === "heading") {
+                return (
+                  <Text key={block.key} style={styles.noticeHeading}>
+                    {block.text}
+                  </Text>
+                );
+              }
+
+              if (block.type === "bullet") {
+                return (
+                  <View key={block.key} style={styles.noticeBulletRow}>
+                    <Text style={styles.noticeBulletMark}>•</Text>
+                    <View style={styles.noticeBulletTextWrap}>
+                      {renderNoticeInline(
+                        block.text,
+                        styles.noticeBulletText,
+                        styles.noticeBoldText
+                      )}
+                    </View>
+                  </View>
+                );
+              }
+
+              return (
+                <View key={block.key} style={styles.noticeParagraphWrap}>
+                  {renderNoticeInline(
+                    block.text,
+                    styles.panelDescription,
+                    styles.noticeBoldText
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          <Text style={styles.panelDescription}>등록된 공지사항이 없습니다.</Text>
+        )}
 
         <Pressable
           disabled={!canCheckIn}
@@ -951,6 +1074,42 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     marginBottom: 10,
+  },
+  noticeContent: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  noticeHeading: {
+    color: "#172033",
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 2,
+  },
+  noticeParagraphWrap: {
+    marginBottom: 2,
+  },
+  noticeBulletRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  noticeBulletMark: {
+    color: "#1463ff",
+    fontSize: 16,
+    fontWeight: "800",
+    lineHeight: 22,
+  },
+  noticeBulletTextWrap: {
+    flex: 1,
+  },
+  noticeBulletText: {
+    color: "#59657a",
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  noticeBoldText: {
+    fontWeight: "800",
+    color: "#172033",
   },
   helperRow: {
     color: "#7b8598",
