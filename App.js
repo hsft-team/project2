@@ -80,9 +80,27 @@ function parseNoticeMessage(message) {
     });
 }
 
+function normalizeNoticeColor(value) {
+  const trimmedValue = value?.trim();
+  if (!trimmedValue) {
+    return null;
+  }
+
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmedValue)) {
+    return trimmedValue;
+  }
+
+  if (/^[a-zA-Z]+$/.test(trimmedValue)) {
+    return trimmedValue.toLowerCase();
+  }
+
+  return null;
+}
+
 function renderNoticeInline(text, textStyle, boldStyle, linkStyle) {
   const parts = [];
-  const pattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*(.+?)\*\*/g;
+  const pattern =
+    /\{color:([^}]+)\}(.+?)\{\/color\}|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*(.+?)\*\*/g;
   let lastIndex = 0;
   let match;
 
@@ -97,15 +115,22 @@ function renderNoticeInline(text, textStyle, boldStyle, linkStyle) {
 
     if (match[1] && match[2]) {
       parts.push({
+        key: `color-${match.index}`,
+        text: match[2],
+        color: normalizeNoticeColor(match[1]),
+        type: "color",
+      });
+    } else if (match[3] && match[4]) {
+      parts.push({
         key: `link-${match.index}`,
-        text: match[1],
-        url: match[2],
+        text: match[3],
+        url: match[4],
         type: "link",
       });
     } else {
       parts.push({
         key: `bold-${match.index}`,
-        text: match[3],
+        text: match[5],
         type: "bold",
       });
     }
@@ -139,6 +164,8 @@ function renderNoticeInline(text, textStyle, boldStyle, linkStyle) {
           style={
             part.type === "bold"
               ? boldStyle
+              : part.type === "color"
+                ? { color: part.color || "#172033" }
               : part.type === "link"
                 ? linkStyle
                 : null
@@ -507,7 +534,7 @@ export default function App() {
       });
       setAuth(response);
       saveAuth(response);
-      setCurrentPasswordInput(password);
+      setCurrentPasswordInput("");
       setNewPasswordInput("");
       setConfirmPasswordInput("");
       setAttendance(INITIAL_STATUS);
@@ -535,8 +562,8 @@ export default function App() {
       return;
     }
 
-    if (!currentPasswordInput || !newPasswordInput || !confirmPasswordInput) {
-      showError("비밀번호 변경 필요", "현재 비밀번호와 새 비밀번호를 모두 입력해 주세요.");
+    if (!newPasswordInput || !confirmPasswordInput) {
+      showError("비밀번호 변경 필요", "새 비밀번호를 모두 입력해 주세요.");
       return;
     }
 
@@ -678,7 +705,7 @@ export default function App() {
           />
           <TextInput
             onChangeText={setPassword}
-            placeholder="비밀번호"
+            placeholder="비밀번호 (첫 로그인 직원은 비워두세요)"
             placeholderTextColor="#8c98ad"
             secureTextEntry
             style={styles.input}
@@ -707,21 +734,13 @@ export default function App() {
         <View style={styles.authCard}>
           <Text style={styles.title}>비밀번호 변경</Text>
           <Text style={styles.subtitle}>
-            처음 로그인한 직원은 비밀번호를 먼저 변경해야 합니다. 변경이 끝나면 바로 출퇴근 기능을 사용할 수 있습니다.
+            처음 로그인한 직원은 새 비밀번호를 먼저 설정해야 합니다. 변경이 끝나면 그다음부터는 새 비밀번호로 로그인합니다.
           </Text>
           {errorMessage ? (
             <View style={styles.authErrorBox}>
               <Text style={styles.authErrorText}>{errorMessage}</Text>
             </View>
           ) : null}
-          <TextInput
-            onChangeText={setCurrentPasswordInput}
-            placeholder="현재 비밀번호"
-            placeholderTextColor="#8c98ad"
-            secureTextEntry
-            style={styles.input}
-            value={currentPasswordInput}
-          />
           <TextInput
             onChangeText={setNewPasswordInput}
             placeholder="새 비밀번호 (8자 이상)"

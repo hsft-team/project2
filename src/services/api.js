@@ -18,8 +18,8 @@ function getErrorMessage(error, fallbackMessage) {
 }
 
 function normalizeLoginErrorMessage(error, employeeCode, password) {
-  if (!employeeCode || !password) {
-    return "사번과 비밀번호를 입력해 주세요.";
+  if (!employeeCode) {
+    return "사번을 입력해 주세요.";
   }
 
   const status = error?.response?.status;
@@ -89,8 +89,8 @@ function normalizeCompanySetting(data) {
 
 export async function login({ employeeCode, password, deviceId, deviceName }) {
   if (DEMO_MODE) {
-    if (!employeeCode || !password) {
-      throw new Error("사번과 비밀번호를 입력해 주세요.");
+    if (!employeeCode) {
+      throw new Error("사번을 입력해 주세요.");
     }
 
     return {
@@ -111,7 +111,7 @@ export async function login({ employeeCode, password, deviceId, deviceName }) {
   try {
     const response = await api.post("/auth/login", {
       employeeCode,
-      password,
+      password: password || "",
       deviceId,
       deviceName,
     });
