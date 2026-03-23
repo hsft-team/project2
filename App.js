@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
   SafeAreaView,
@@ -103,6 +104,7 @@ export default function App() {
   const [newPasswordInput, setNewPasswordInput] = useState("");
   const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showCheckOutConfirm, setShowCheckOutConfirm] = useState(false);
   const [locationPermission, setLocationPermission] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
@@ -505,20 +507,7 @@ export default function App() {
       return;
     }
 
-    Alert.alert(
-      "퇴근 확인",
-      "지금 퇴근 처리하시겠어요?",
-      [
-        {
-          text: "취소",
-          style: "cancel",
-        },
-        {
-          text: "퇴근하기",
-          onPress: submitCheckOut,
-        },
-      ]
-    );
+    setShowCheckOutConfirm(true);
   }
 
   async function submitCheckOut() {
@@ -527,6 +516,7 @@ export default function App() {
     }
 
     try {
+      setShowCheckOutConfirm(false);
       setSubmittingAttendance(true);
       setErrorMessage("");
       const response = await checkOut({
@@ -655,6 +645,33 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
+      <Modal
+        animationType="fade"
+        transparent
+        visible={showCheckOutConfirm}
+        onRequestClose={() => setShowCheckOutConfirm(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>퇴근 확인</Text>
+            <Text style={styles.modalDescription}>지금 퇴근 처리하시겠어요?</Text>
+            <View style={styles.modalButtonRow}>
+              <Pressable
+                onPress={() => setShowCheckOutConfirm(false)}
+                style={[styles.modalButton, styles.modalSecondaryButton]}
+              >
+                <Text style={styles.modalSecondaryButtonText}>취소</Text>
+              </Pressable>
+              <Pressable
+                onPress={submitCheckOut}
+                style={[styles.modalButton, styles.modalPrimaryButton]}
+              >
+                <Text style={styles.modalPrimaryButtonText}>퇴근하기</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
       {errorMessage ? (
         <View style={styles.errorBanner}>
           <Text style={styles.errorBannerText}>{errorMessage}</Text>
@@ -1013,5 +1030,63 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.45,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.48)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 24,
+    gap: 12,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#172033",
+  },
+  modalDescription: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#5b667a",
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+  },
+  modalButton: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalPrimaryButton: {
+    backgroundColor: "#1463ff",
+  },
+  modalSecondaryButton: {
+    backgroundColor: "#eef2f8",
+  },
+  modalPrimaryButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  modalSecondaryButtonText: {
+    color: "#334155",
+    fontSize: 15,
+    fontWeight: "700",
   },
 });
