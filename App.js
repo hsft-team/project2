@@ -380,8 +380,6 @@ export default function App() {
 
   const canCheckOut =
     Boolean(auth) &&
-    effectiveAttendance.checkedInAt &&
-    !effectiveAttendance.checkedOutAt &&
     !submittingAttendance;
 
   async function handleLogin() {
@@ -504,6 +502,27 @@ export default function App() {
 
     if (!currentLocation) {
       showError("퇴근 처리 실패", "현재 위치를 아직 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+
+    Alert.alert(
+      "퇴근 확인",
+      "지금 퇴근 처리하시겠어요?",
+      [
+        {
+          text: "취소",
+          style: "cancel",
+        },
+        {
+          text: "퇴근하기",
+          onPress: submitCheckOut,
+        },
+      ]
+    );
+  }
+
+  async function submitCheckOut() {
+    if (!auth?.token || !currentLocation) {
       return;
     }
 
