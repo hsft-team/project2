@@ -69,6 +69,7 @@ Start-Process -FilePath $serveCmd `
         $Port.ToString()
     ) `
     -WorkingDirectory $projectRoot `
+    -WindowStyle Hidden `
     -RedirectStandardOutput $outLog `
     -RedirectStandardError $errLog
 
