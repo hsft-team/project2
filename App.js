@@ -122,6 +122,7 @@ export default function App() {
     latitude: COMPANY_LOCATION.latitude,
     longitude: COMPANY_LOCATION.longitude,
     allowedRadiusMeters: COMPANY_RADIUS_METERS,
+    noticeMessage: "",
   });
 
   useEffect(() => {
@@ -410,6 +411,7 @@ export default function App() {
         latitude: COMPANY_LOCATION.latitude,
         longitude: COMPANY_LOCATION.longitude,
         allowedRadiusMeters: COMPANY_RADIUS_METERS,
+        noticeMessage: "",
       });
     } catch (error) {
       showError("로그인 실패", error.message || "다시 시도해 주세요.");
@@ -743,16 +745,11 @@ export default function App() {
       </View>
 
       <View style={styles.bottomPanel}>
-        <Text style={styles.panelTitle}>오늘 상태</Text>
+        <Text style={styles.panelTitle}>공지사항</Text>
         <Text style={styles.panelDescription}>
-          {attendance.checkedOutAt
-            ? "오늘 퇴근까지 완료되었습니다."
-            : attendance.checkedInAt
-              ? "출근 완료. 회사 반경 안에서 정확한 위치가 확인되면 퇴근 버튼이 활성화됩니다."
-              : "회사 반경 안에서 정확한 위치가 확인되면 출근 버튼이 활성화됩니다."}
-        </Text>
-        <Text style={styles.helperRow}>
-          기준 위치: {attendanceMeta.companyName || COMPANY_NAME}
+          {companySetting.noticeMessage?.trim()
+            ? companySetting.noticeMessage
+            : "등록된 공지사항이 없습니다."}
         </Text>
         {DEMO_MODE ? (
           <Text style={styles.demoText}>
@@ -777,8 +774,8 @@ export default function App() {
           <Text style={styles.helperRow}>로그인 유지 만료: {new Date(auth.expiresAt).toLocaleDateString("ko-KR")}</Text>
         ) : null}
         <Text style={styles.helperRow}>
-            오늘 출근 {formatTime(attendance.checkedInAt)} / 퇴근 {formatTime(attendance.checkedOutAt)}
-          </Text>
+          오늘 출근 {formatTime(attendance.checkedInAt)} / 퇴근 {formatTime(attendance.checkedOutAt)}
+        </Text>
 
         <Pressable
           disabled={!canCheckIn}

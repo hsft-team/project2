@@ -83,6 +83,7 @@ function normalizeCompanySetting(data) {
     longitude: data.longitude,
     allowedRadiusMeters: data.allowedRadiusMeters,
     lateAfterTime: data.lateAfterTime,
+    noticeMessage: data.noticeMessage || "",
   };
 }
 
