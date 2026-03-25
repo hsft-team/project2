@@ -13,7 +13,7 @@ L.Icon.Default.mergeOptions({
 
 const companyIcon = new L.DivIcon({
   className: "company-marker",
-  html: '<div style="background:#1463ff;color:#fff;border-radius:999px;padding:8px 10px;font-size:12px;font-weight:700;box-shadow:0 8px 18px rgba(20,99,255,.25);">회사</div>',
+  html: '<div style="background:#1463ff;color:#fff;border-radius:999px;padding:8px 10px;font-size:12px;font-weight:700;box-shadow:0 8px 18px rgba(20,99,255,.25);">사업장</div>',
   iconSize: [52, 36],
   iconAnchor: [26, 18],
 });

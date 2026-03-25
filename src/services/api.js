@@ -199,7 +199,7 @@ export async function getCompanySetting({ token }) {
 
     return normalizeCompanySetting(response.data);
   } catch (error) {
-    throw new Error(getErrorMessage(error, "회사 설정을 불러오지 못했습니다."));
+    throw new Error(getErrorMessage(error, "사업장 설정을 불러오지 못했습니다."));
   }
 }
 

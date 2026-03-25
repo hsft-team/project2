@@ -326,7 +326,7 @@ export default function App() {
     window.location.hostname === "localhost";
   const webLocationHelpText = !isSecureWebContext
     ? "위치 권한은 HTTPS에서만 동작합니다. https://m.hsft.io.kr 로 접속한 뒤 다시 시도해 주세요."
-    : "Safari 주소창의 aA > 웹 사이트 설정 > 위치 > 허용으로 바꾸면 회사 반경 안에서 출근 버튼이 활성화됩니다.";
+    : "Safari 주소창의 aA > 웹 사이트 설정 > 위치 > 허용으로 바꾸면 사업장 반경 안에서 출근 버튼이 활성화됩니다.";
 
   function showError(title, message) {
     const nextMessage = message || "알 수 없는 오류가 발생했습니다.";
@@ -456,7 +456,7 @@ export default function App() {
             setAuth(null);
             return;
           }
-          showError("회사 설정 조회 실패", error.message || "회사 설정을 불러오지 못했습니다.");
+          showError("사업장 설정 조회 실패", error.message || "사업장 설정을 불러오지 못했습니다.");
         }
       }
     }
@@ -924,7 +924,7 @@ export default function App() {
             <Text style={styles.helperText}>
               {Platform.OS === "web"
                 ? webLocationHelpText
-                : "권한을 허용하면 회사 반경 안에서만 출근 버튼이 활성화됩니다."}
+                : "권한을 허용하면 사업장 반경 안에서만 출근 버튼이 활성화됩니다."}
             </Text>
             <Pressable
               onPress={handleRetryLocationPermission}
