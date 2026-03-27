@@ -16,15 +16,15 @@ const companyIcon = new L.DivIcon({
   className: "company-marker",
   html: `
     <div style="position:relative;width:44px;height:56px;">
-      <div style="position:absolute;left:8px;top:4px;width:28px;height:38px;border-radius:8px;background:linear-gradient(135deg,#5aa2ff 0%,#1463ff 100%);box-shadow:0 10px 18px rgba(20,99,255,.22);"></div>
-      <div style="position:absolute;left:12px;top:9px;width:20px;height:5px;border-radius:999px;background:rgba(220,233,255,.95);"></div>
-      <div style="position:absolute;left:13px;top:18px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
-      <div style="position:absolute;left:20px;top:18px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
-      <div style="position:absolute;left:27px;top:18px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
-      <div style="position:absolute;left:13px;top:27px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
-      <div style="position:absolute;left:20px;top:27px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
-      <div style="position:absolute;left:27px;top:27px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
-      <div style="position:absolute;left:18px;bottom:6px;width:8px;height:11px;border-radius:3px 3px 0 0;background:#dce9ff;"></div>
+      <div style="position:absolute;left:8px;top:4px;width:28px;height:38px;border-radius:8px;background:linear-gradient(135deg,#2a2f3a 0%,#0f172a 100%);box-shadow:0 10px 18px rgba(15,23,42,.24);"></div>
+      <div style="position:absolute;left:12px;top:9px;width:20px;height:5px;border-radius:999px;background:rgba(226,232,240,.92);"></div>
+      <div style="position:absolute;left:13px;top:18px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:20px;top:18px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:27px;top:18px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:13px;top:27px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:20px;top:27px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:27px;top:27px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:18px;bottom:6px;width:8px;height:11px;border-radius:3px 3px 0 0;background:#cbd5e1;"></div>
     </div>
   `,
   iconSize: [44, 56],
