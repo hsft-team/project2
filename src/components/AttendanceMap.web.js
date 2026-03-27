@@ -33,7 +33,7 @@ const currentLocationIcon = new L.DivIcon({
   className: "current-location-marker",
   html: `
     <div style="position:relative;width:34px;height:34px;">
-      <div style="position:absolute;inset:0;border-radius:999px;background:#111827;box-shadow:0 10px 18px rgba(15,23,42,.24);"></div>
+      <div style="position:absolute;inset:0;border-radius:999px;background:#1463ff;box-shadow:0 10px 18px rgba(20,99,255,.28);"></div>
       <div style="position:absolute;left:12px;top:8px;width:10px;height:10px;border-radius:999px;background:#f8fafc;"></div>
       <div style="position:absolute;left:9px;top:18px;width:16px;height:9px;border-radius:9px 9px 6px 6px;background:#f8fafc;"></div>
     </div>
@@ -46,9 +46,9 @@ const currentLocationDotIcon = new L.DivIcon({
   className: "current-location-dot-marker",
   html: `
     <div style="position:relative;width:24px;height:24px;">
-      <div style="position:absolute;inset:0;border-radius:999px;background:rgba(77,159,255,.18);"></div>
-      <div style="position:absolute;left:4px;top:4px;width:16px;height:16px;border-radius:999px;background:rgba(77,159,255,.24);"></div>
-      <div style="position:absolute;left:7px;top:7px;width:10px;height:10px;border-radius:999px;background:#1677ff;border:3px solid #ffffff;box-sizing:border-box;"></div>
+      <div style="position:absolute;inset:0;border-radius:999px;background:rgba(20,99,255,.18);"></div>
+      <div style="position:absolute;left:4px;top:4px;width:16px;height:16px;border-radius:999px;background:rgba(20,99,255,.24);"></div>
+      <div style="position:absolute;left:7px;top:7px;width:10px;height:10px;border-radius:999px;background:#1463ff;border:3px solid #ffffff;box-sizing:border-box;"></div>
     </div>
   `,
   iconSize: [24, 24],
@@ -70,6 +70,17 @@ function MapViewport({ companyLocation, currentLocation }) {
   return null;
 }
 
+function offsetCoordinate({ latitude, longitude }, northMeters, eastMeters) {
+  const latitudeOffset = northMeters / 111320;
+  const longitudeOffset =
+    eastMeters / (111320 * Math.cos((latitude * Math.PI) / 180));
+
+  return {
+    latitude: latitude + latitudeOffset,
+    longitude: longitude + longitudeOffset,
+  };
+}
+
 export default function AttendanceMap({
   companyLocation,
   companyName,
@@ -83,6 +94,10 @@ export default function AttendanceMap({
   const shouldUseCompactCurrentLocation =
     currentLocation &&
     distanceToCompany < 40;
+  const displayedCurrentLocation =
+    currentLocation && shouldUseCompactCurrentLocation
+      ? offsetCoordinate(currentLocation, 8, 12)
+      : currentLocation;
   const isInsideCompanyRadius =
     distanceToCompany == null || distanceToCompany <= companyRadiusMeters;
   const circleColor = isInsideCompanyRadius
@@ -124,7 +139,7 @@ export default function AttendanceMap({
         {currentLocation ? (
           <Marker
             icon={shouldUseCompactCurrentLocation ? currentLocationDotIcon : currentLocationIcon}
-            position={[currentLocation.latitude, currentLocation.longitude]}
+            position={[displayedCurrentLocation.latitude, displayedCurrentLocation.longitude]}
           >
             <Popup>현재 위치</Popup>
           </Marker>
