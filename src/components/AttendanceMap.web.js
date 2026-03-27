@@ -15,33 +15,32 @@ const companyIcon = new L.DivIcon({
   className: "company-marker",
   html: `
     <div style="position:relative;width:44px;height:56px;">
-      <div style="position:absolute;left:18px;top:8px;width:5px;height:36px;border-radius:999px;background:#1d2433;box-shadow:0 6px 14px rgba(15,23,42,.22);"></div>
-      <div style="position:absolute;left:23px;top:10px;width:22px;height:18px;border-radius:2px;background:#0f172a;"></div>
-      <div style="position:absolute;left:33px;top:10px;width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:12px solid #0f172a;"></div>
-      <div style="position:absolute;left:26px;top:16px;width:14px;height:14px;border-radius:999px;background:#ffffff;"></div>
-      <div style="position:absolute;left:30px;top:20px;width:2.5px;height:2.5px;border-radius:999px;background:#0f172a;"></div>
-      <div style="position:absolute;left:35px;top:20px;width:2.5px;height:2.5px;border-radius:999px;background:#0f172a;"></div>
-      <div style="position:absolute;left:33px;top:23px;width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-top:4px solid #0f172a;"></div>
-      <div style="position:absolute;left:28px;top:27px;width:10px;height:2px;border-radius:999px;background:#0f172a;"></div>
-      <div style="position:absolute;left:26px;top:29px;width:18px;height:4px;transform:rotate(35deg);transform-origin:center;background:#ffffff;border-radius:999px;"></div>
-      <div style="position:absolute;left:26px;top:29px;width:18px;height:4px;transform:rotate(-35deg);transform-origin:center;background:#ffffff;border-radius:999px;"></div>
+      <div style="position:absolute;left:8px;top:4px;width:28px;height:38px;border-radius:8px;background:linear-gradient(135deg,#5aa2ff 0%,#1463ff 100%);box-shadow:0 10px 18px rgba(20,99,255,.22);"></div>
+      <div style="position:absolute;left:12px;top:9px;width:20px;height:5px;border-radius:999px;background:rgba(220,233,255,.95);"></div>
+      <div style="position:absolute;left:13px;top:18px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
+      <div style="position:absolute;left:20px;top:18px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
+      <div style="position:absolute;left:27px;top:18px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
+      <div style="position:absolute;left:13px;top:27px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
+      <div style="position:absolute;left:20px;top:27px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
+      <div style="position:absolute;left:27px;top:27px;width:5px;height:5px;border-radius:2px;background:#dce9ff;"></div>
+      <div style="position:absolute;left:18px;bottom:6px;width:8px;height:11px;border-radius:3px 3px 0 0;background:#dce9ff;"></div>
     </div>
   `,
   iconSize: [44, 56],
-  iconAnchor: [22, 42],
+  iconAnchor: [22, 44],
 });
 
 const currentLocationIcon = new L.DivIcon({
   className: "current-location-marker",
   html: `
-    <div style="position:relative;width:34px;height:34px;">
-      <div style="position:absolute;inset:0;border-radius:999px;background:rgba(77,159,255,.18);"></div>
-      <div style="position:absolute;left:5px;top:5px;width:24px;height:24px;border-radius:999px;background:rgba(77,159,255,.28);"></div>
-      <div style="position:absolute;left:11px;top:11px;width:12px;height:12px;border-radius:999px;background:#1677ff;border:4px solid #ffffff;box-sizing:border-box;"></div>
+    <div style="position:relative;width:40px;height:46px;">
+      <div style="position:absolute;left:2px;top:8px;width:36px;height:36px;border-radius:999px;background:rgba(77,159,255,.14);"></div>
+      <div style="position:absolute;left:10px;top:2px;width:14px;height:14px;border-radius:999px;background:#ffffff;border:4px solid #1677ff;box-sizing:border-box;"></div>
+      <div style="position:absolute;left:7px;top:16px;width:20px;height:16px;border-radius:10px 10px 8px 8px;background:#ffffff;border:4px solid #1677ff;box-sizing:border-box;"></div>
     </div>
   `,
-  iconSize: [34, 34],
-  iconAnchor: [17, 17],
+  iconSize: [40, 46],
+  iconAnchor: [20, 23],
 });
 
 function MapViewport({ companyLocation, currentLocation }) {
