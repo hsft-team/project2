@@ -129,6 +129,7 @@ export default function AttendanceMap({
         <Marker
           icon={companyIcon}
           position={[companyLocation.latitude, companyLocation.longitude]}
+          zIndexOffset={100}
         >
           <Popup>
             {companyName}
@@ -140,6 +141,7 @@ export default function AttendanceMap({
           <Marker
             icon={shouldUseCompactCurrentLocation ? currentLocationDotIcon : currentLocationIcon}
             position={[displayedCurrentLocation.latitude, displayedCurrentLocation.longitude]}
+            zIndexOffset={1000}
           >
             <Popup>현재 위치</Popup>
           </Marker>
