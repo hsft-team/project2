@@ -15,33 +15,31 @@ L.Icon.Default.mergeOptions({
 const companyIcon = new L.DivIcon({
   className: "company-marker",
   html: `
-    <div style="position:relative;width:34px;height:42px;">
-      <div style="position:absolute;left:5px;top:2px;width:22px;height:28px;border-radius:7px;background:linear-gradient(135deg,#2a2f3a 0%,#0f172a 100%);box-shadow:0 8px 14px rgba(15,23,42,.22);"></div>
-      <div style="position:absolute;left:8px;top:6px;width:16px;height:4px;border-radius:999px;background:rgba(226,232,240,.9);"></div>
-      <div style="position:absolute;left:9px;top:13px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:15px;top:13px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:21px;top:13px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:9px;top:20px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:15px;top:20px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:21px;top:20px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:13px;bottom:3px;width:6px;height:8px;border-radius:3px 3px 0 0;background:#cbd5e1;"></div>
+    <div style="position:relative;width:34px;height:34px;">
+      <div style="position:absolute;inset:0;border-radius:999px;background:#1f2937;box-shadow:0 10px 18px rgba(15,23,42,.24);"></div>
+      <div style="position:absolute;left:9px;top:9px;width:16px;height:16px;border-radius:4px;background:#e5edf7;"></div>
+      <div style="position:absolute;left:11px;top:11px;width:12px;height:3px;border-radius:999px;background:#94a3b8;"></div>
+      <div style="position:absolute;left:11px;top:16px;width:3px;height:3px;border-radius:1px;background:#64748b;"></div>
+      <div style="position:absolute;left:16px;top:16px;width:3px;height:3px;border-radius:1px;background:#64748b;"></div>
+      <div style="position:absolute;left:21px;top:16px;width:3px;height:3px;border-radius:1px;background:#64748b;"></div>
+      <div style="position:absolute;left:15px;top:21px;width:4px;height:4px;border-radius:1px;background:#64748b;"></div>
     </div>
   `,
-  iconSize: [34, 42],
-  iconAnchor: [17, 34],
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
 });
 
 const currentLocationIcon = new L.DivIcon({
   className: "current-location-marker",
   html: `
-    <div style="position:relative;width:34px;height:40px;">
-      <div style="position:absolute;left:3px;top:8px;width:28px;height:28px;border-radius:999px;background:rgba(77,159,255,.12);"></div>
-      <div style="position:absolute;left:10px;top:3px;width:11px;height:11px;border-radius:999px;background:#ffffff;border:3px solid #1677ff;box-sizing:border-box;"></div>
-      <div style="position:absolute;left:8px;top:15px;width:16px;height:13px;border-radius:10px 10px 7px 7px;background:#ffffff;border:3px solid #1677ff;box-sizing:border-box;"></div>
+    <div style="position:relative;width:34px;height:34px;">
+      <div style="position:absolute;inset:0;border-radius:999px;background:#111827;box-shadow:0 10px 18px rgba(15,23,42,.24);"></div>
+      <div style="position:absolute;left:12px;top:8px;width:10px;height:10px;border-radius:999px;background:#f8fafc;"></div>
+      <div style="position:absolute;left:9px;top:18px;width:16px;height:9px;border-radius:9px 9px 6px 6px;background:#f8fafc;"></div>
     </div>
   `,
-  iconSize: [34, 40],
-  iconAnchor: [17, 20],
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
 });
 
 const currentLocationDotIcon = new L.DivIcon({
