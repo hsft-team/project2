@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import L from "leaflet";
-import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import { Circle, MapContainer, Marker, Pane, Popup, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { getDistanceInMeters } from "../utils/location";
 
@@ -96,7 +96,7 @@ export default function AttendanceMap({
     distanceToCompany < 40;
   const displayedCurrentLocation =
     currentLocation && shouldUseCompactCurrentLocation
-      ? offsetCoordinate(currentLocation, 8, 12)
+      ? offsetCoordinate(currentLocation, 12, 18)
       : currentLocation;
   const isInsideCompanyRadius =
     distanceToCompany == null || distanceToCompany <= companyRadiusMeters;
@@ -126,25 +126,27 @@ export default function AttendanceMap({
           pathOptions={{ color: circleColor, weight: 2.5 }}
           radius={companyRadiusMeters}
         />
-        <Marker
-          icon={companyIcon}
-          position={[companyLocation.latitude, companyLocation.longitude]}
-          zIndexOffset={100}
-        >
-          <Popup>
-            {companyName}
-            <br />
-            허용 반경 {companyRadiusMeters}m
-          </Popup>
-        </Marker>
-        {currentLocation ? (
+        <Pane name="company-location-pane" style={{ zIndex: 500 }}>
           <Marker
-            icon={shouldUseCompactCurrentLocation ? currentLocationDotIcon : currentLocationIcon}
-            position={[displayedCurrentLocation.latitude, displayedCurrentLocation.longitude]}
-            zIndexOffset={1000}
+            icon={companyIcon}
+            position={[companyLocation.latitude, companyLocation.longitude]}
           >
-            <Popup>현재 위치</Popup>
+            <Popup>
+              {companyName}
+              <br />
+              허용 반경 {companyRadiusMeters}m
+            </Popup>
           </Marker>
+        </Pane>
+        {currentLocation ? (
+          <Pane name="current-location-pane" style={{ zIndex: 650 }}>
+            <Marker
+              icon={shouldUseCompactCurrentLocation ? currentLocationDotIcon : currentLocationIcon}
+              position={[displayedCurrentLocation.latitude, displayedCurrentLocation.longitude]}
+            >
+              <Popup>현재 위치</Popup>
+            </Marker>
+          </Pane>
         ) : null}
       </MapContainer>
     </View>
