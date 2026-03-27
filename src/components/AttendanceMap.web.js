@@ -15,33 +15,33 @@ L.Icon.Default.mergeOptions({
 const companyIcon = new L.DivIcon({
   className: "company-marker",
   html: `
-    <div style="position:relative;width:44px;height:56px;">
-      <div style="position:absolute;left:8px;top:4px;width:28px;height:38px;border-radius:8px;background:linear-gradient(135deg,#2a2f3a 0%,#0f172a 100%);box-shadow:0 10px 18px rgba(15,23,42,.24);"></div>
-      <div style="position:absolute;left:12px;top:9px;width:20px;height:5px;border-radius:999px;background:rgba(226,232,240,.92);"></div>
-      <div style="position:absolute;left:13px;top:18px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:20px;top:18px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:27px;top:18px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:13px;top:27px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:20px;top:27px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:27px;top:27px;width:5px;height:5px;border-radius:2px;background:#cbd5e1;"></div>
-      <div style="position:absolute;left:18px;bottom:6px;width:8px;height:11px;border-radius:3px 3px 0 0;background:#cbd5e1;"></div>
+    <div style="position:relative;width:34px;height:42px;">
+      <div style="position:absolute;left:5px;top:2px;width:22px;height:28px;border-radius:7px;background:linear-gradient(135deg,#2a2f3a 0%,#0f172a 100%);box-shadow:0 8px 14px rgba(15,23,42,.22);"></div>
+      <div style="position:absolute;left:8px;top:6px;width:16px;height:4px;border-radius:999px;background:rgba(226,232,240,.9);"></div>
+      <div style="position:absolute;left:9px;top:13px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:15px;top:13px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:21px;top:13px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:9px;top:20px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:15px;top:20px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:21px;top:20px;width:4px;height:4px;border-radius:2px;background:#cbd5e1;"></div>
+      <div style="position:absolute;left:13px;bottom:3px;width:6px;height:8px;border-radius:3px 3px 0 0;background:#cbd5e1;"></div>
     </div>
   `,
-  iconSize: [44, 56],
-  iconAnchor: [22, 44],
+  iconSize: [34, 42],
+  iconAnchor: [17, 34],
 });
 
 const currentLocationIcon = new L.DivIcon({
   className: "current-location-marker",
   html: `
-    <div style="position:relative;width:40px;height:46px;">
-      <div style="position:absolute;left:2px;top:8px;width:36px;height:36px;border-radius:999px;background:rgba(77,159,255,.14);"></div>
-      <div style="position:absolute;left:10px;top:2px;width:14px;height:14px;border-radius:999px;background:#ffffff;border:4px solid #1677ff;box-sizing:border-box;"></div>
-      <div style="position:absolute;left:7px;top:16px;width:20px;height:16px;border-radius:10px 10px 8px 8px;background:#ffffff;border:4px solid #1677ff;box-sizing:border-box;"></div>
+    <div style="position:relative;width:34px;height:40px;">
+      <div style="position:absolute;left:3px;top:8px;width:28px;height:28px;border-radius:999px;background:rgba(77,159,255,.12);"></div>
+      <div style="position:absolute;left:10px;top:3px;width:11px;height:11px;border-radius:999px;background:#ffffff;border:3px solid #1677ff;box-sizing:border-box;"></div>
+      <div style="position:absolute;left:8px;top:15px;width:16px;height:13px;border-radius:10px 10px 7px 7px;background:#ffffff;border:3px solid #1677ff;box-sizing:border-box;"></div>
     </div>
   `,
-  iconSize: [40, 46],
-  iconAnchor: [20, 23],
+  iconSize: [34, 40],
+  iconAnchor: [17, 20],
 });
 
 const currentLocationDotIcon = new L.DivIcon({
@@ -84,7 +84,7 @@ export default function AttendanceMap({
     : null;
   const shouldUseCompactCurrentLocation =
     currentLocation &&
-    distanceToCompany < 20;
+    distanceToCompany < 40;
   const isInsideCompanyRadius =
     distanceToCompany == null || distanceToCompany <= companyRadiusMeters;
   const circleColor = isInsideCompanyRadius
