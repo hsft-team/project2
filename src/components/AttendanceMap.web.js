@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import L from "leaflet";
 import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { getDistanceInMeters } from "../utils/location";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -43,6 +44,19 @@ const currentLocationIcon = new L.DivIcon({
   iconAnchor: [20, 23],
 });
 
+const currentLocationDotIcon = new L.DivIcon({
+  className: "current-location-dot-marker",
+  html: `
+    <div style="position:relative;width:24px;height:24px;">
+      <div style="position:absolute;inset:0;border-radius:999px;background:rgba(77,159,255,.18);"></div>
+      <div style="position:absolute;left:4px;top:4px;width:16px;height:16px;border-radius:999px;background:rgba(77,159,255,.24);"></div>
+      <div style="position:absolute;left:7px;top:7px;width:10px;height:10px;border-radius:999px;background:#1677ff;border:3px solid #ffffff;box-sizing:border-box;"></div>
+    </div>
+  `,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+});
+
 function MapViewport({ companyLocation, currentLocation }) {
   const map = useMap();
 
@@ -65,6 +79,10 @@ export default function AttendanceMap({
   currentLocation,
   style,
 }) {
+  const shouldUseCompactCurrentLocation =
+    currentLocation &&
+    getDistanceInMeters(currentLocation, companyLocation) < 20;
+
   return (
     <View style={[styles.wrapper, style]}>
       <MapContainer
@@ -96,7 +114,7 @@ export default function AttendanceMap({
         </Marker>
         {currentLocation ? (
           <Marker
-            icon={currentLocationIcon}
+            icon={shouldUseCompactCurrentLocation ? currentLocationDotIcon : currentLocationIcon}
             position={[currentLocation.latitude, currentLocation.longitude]}
           >
             <Popup>현재 위치</Popup>
