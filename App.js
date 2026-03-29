@@ -894,10 +894,6 @@ export default function App() {
           <Text style={styles.welcomeText}>
             {auth.user.name} <Text style={styles.welcomeCode}>({auth.user.employeeCode})</Text>
           </Text>
-          <Text style={styles.statusText}>오늘 근무 상태를 확인하고 출퇴근을 기록해 주세요.</Text>
-          <Text style={styles.companyText}>
-            {getDisplayLocationName(attendanceMeta, companySetting)} 반경 {companySetting.allowedRadiusMeters}m
-          </Text>
         </View>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
@@ -1154,17 +1150,6 @@ const styles = StyleSheet.create({
     color: "#52607a",
     fontSize: 18,
     fontWeight: "700",
-  },
-  statusText: {
-    color: "#536076",
-    fontSize: 14,
-    marginTop: 4,
-    lineHeight: 20,
-  },
-  companyText: {
-    color: "#6a7487",
-    fontSize: 13,
-    marginTop: 4,
   },
   badge: {
     backgroundColor: "#dbe8ff",
