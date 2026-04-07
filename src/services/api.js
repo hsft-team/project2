@@ -50,6 +50,7 @@ function getUserPayload(data, employeeCode) {
     id: data?.employeeId,
     name: data?.employeeName || "사용자",
     employeeCode,
+    companyId: data?.companyId || null,
     companyName: data?.companyName,
     workplaceName: data?.workplaceName || null,
     role: data?.role,
@@ -88,6 +89,21 @@ function normalizeCompanySetting(data) {
     allowedRadiusMeters: data.allowedRadiusMeters,
     lateAfterTime: data.lateAfterTime,
     noticeMessage: data.noticeMessage || "",
+    mobileSkinKey: data.mobileSkinKey || "classic",
+  };
+}
+
+function normalizeInvitePreview(data) {
+  return {
+    employeeName: data?.employeeName || "",
+    employeeCode: data?.employeeCode || "",
+    companyName: data?.companyName || "",
+    companyId: data?.companyId || null,
+    workplaceName: data?.workplaceName || "본사",
+    workplaceId: data?.workplaceId || null,
+    role: data?.role || "",
+    expiresAt: data?.expiresAt || null,
+    message: data?.message || "",
   };
 }
 
@@ -158,6 +174,40 @@ export async function changePassword({ token, currentPassword, newPassword }) {
   }
 }
 
+export async function previewInvite({ inviteToken }) {
+  try {
+    const response = await api.get("/auth/invite/preview", {
+      params: {
+        token: inviteToken,
+      },
+    });
+
+    return normalizeInvitePreview(response.data);
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "초대 정보를 불러오지 못했습니다."));
+  }
+}
+
+export async function activateInvite({ inviteToken, newPassword, deviceId, deviceName }) {
+  try {
+    const response = await api.post("/auth/invite/activate", {
+      inviteToken,
+      newPassword,
+      deviceId,
+      deviceName,
+    });
+
+    return {
+      token: response.data?.accessToken,
+      tokenType: response.data?.tokenType || "Bearer",
+      expiresAt: response.data?.accessTokenExpiresAt,
+      user: getUserPayload(response.data, response.data?.employeeCode),
+    };
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "초대 활성화에 실패했습니다."));
+  }
+}
+
 export async function getTodayAttendance({ token }) {
   if (DEMO_MODE) {
     return normalizeTodayAttendance(null);
@@ -187,6 +237,7 @@ export async function getCompanySetting({ token }) {
       longitude: 126.978,
       allowedRadiusMeters: 100,
       lateAfterTime: "09:00:00",
+      mobileSkinKey: "classic",
     });
   }
 
@@ -214,6 +265,7 @@ export async function getPublicCompanySetting() {
       longitude: 126.978,
       allowedRadiusMeters: 100,
       lateAfterTime: "09:00:00",
+      mobileSkinKey: "classic",
     });
   }
 
