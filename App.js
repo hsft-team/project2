@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import * as Location from "expo-location";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -30,6 +30,7 @@ import {
   getPublicCompanySetting,
   getTodayAttendance,
   login,
+  previewInvite,
 } from "./src/services/api";
 import {
   clearEmployeeCode,
@@ -213,6 +214,71 @@ function mapPositionToLocation(position) {
   };
 }
 
+function extractTokenFromSegment(rawSegment) {
+  if (!rawSegment) {
+    return null;
+  }
+
+  const normalizedSegment = rawSegment.startsWith("#")
+    ? rawSegment.slice(1)
+    : rawSegment;
+  const queryIndex = normalizedSegment.indexOf("?");
+  const queryString = queryIndex >= 0
+    ? normalizedSegment.slice(queryIndex + 1)
+    : normalizedSegment;
+
+  if (!queryString) {
+    return null;
+  }
+
+  try {
+    const params = new URLSearchParams(queryString);
+    return params.get("token");
+  } catch (error) {
+    const match = queryString.match(/(?:^|[?&])token=([^&#]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+}
+
+function extractInviteTokenFromUrl(rawUrl) {
+  if (!rawUrl) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(rawUrl);
+    const queryToken = parsedUrl.searchParams.get("token");
+    if (queryToken) {
+      return queryToken;
+    }
+
+    const hashToken = extractTokenFromSegment(parsedUrl.hash);
+    if (hashToken) {
+      return hashToken;
+    }
+
+    const decodedHashToken = extractTokenFromSegment(decodeURIComponent(parsedUrl.hash || ""));
+    if (decodedHashToken) {
+      return decodedHashToken;
+    }
+  } catch (error) {
+    const match = rawUrl.match(/(?:[?&]|#.*[?&])token=([^&#]+)/);
+    if (match) {
+      return decodeURIComponent(match[1]);
+    }
+  }
+
+  return extractTokenFromSegment(rawUrl);
+}
+
+function buildInviteAppUrl(token) {
+  if (!token) {
+    return "attendanceapp://invite";
+  }
+
+  return `attendanceapp://invite?token=${encodeURIComponent(token)}`;
+}
+
 function formatTime(dateString) {
   if (!dateString) {
     return "-";
@@ -242,7 +308,99 @@ function getDisplayLocationName(attendanceMeta, companySetting) {
   );
 }
 
+function getSkinPalette(skinKey) {
+  switch ((skinKey || "classic").toLowerCase()) {
+    case "ocean":
+      return {
+        screen: "#e8f6f4",
+        screenAlt: "#f3fbfa",
+        surface: "#ffffff",
+        surfaceSoft: "#ecf8f6",
+        text: "#123235",
+        muted: "#5f7a7c",
+        primary: "#0f9d94",
+        primaryDark: "#0a6f69",
+        accent: "#d5f3ee",
+        accentText: "#0b6a63",
+        border: "#cfeae5",
+        mapCard: "#d6efe9",
+      };
+    case "sunset":
+      return {
+        screen: "#fff1e8",
+        screenAlt: "#fff7f2",
+        surface: "#ffffff",
+        surfaceSoft: "#fff2ea",
+        text: "#3b1f17",
+        muted: "#856256",
+        primary: "#ef6c4d",
+        primaryDark: "#b84730",
+        accent: "#ffe0d2",
+        accentText: "#b84730",
+        border: "#f4d3c4",
+        mapCard: "#f7dfd2",
+      };
+    case "classic":
+    default:
+      return {
+        screen: "#eef3fb",
+        screenAlt: "#f3f6fb",
+        surface: "#ffffff",
+        surfaceSoft: "#f4f7fb",
+        text: "#172033",
+        muted: "#5a657a",
+        primary: "#1463ff",
+        primaryDark: "#172033",
+        accent: "#dbe8ff",
+        accentText: "#1447b8",
+        border: "#dbe4f0",
+        mapCard: "#dfe7f4",
+      };
+  }
+}
+
+function createThemeStyles(palette) {
+  return StyleSheet.create({
+    authContainer: { backgroundColor: palette.screenAlt },
+    authCard: { backgroundColor: palette.surface },
+    title: { color: palette.text },
+    subtitle: { color: palette.muted },
+    input: { backgroundColor: palette.surfaceSoft, color: palette.text },
+    checkboxChecked: { backgroundColor: palette.primary, borderColor: palette.primary },
+    container: { backgroundColor: palette.screen },
+    headerText: { color: palette.text },
+    welcomeCode: { color: palette.muted },
+    badge: { backgroundColor: palette.accent },
+    badgeText: { color: palette.accentText },
+    mapCard: { backgroundColor: palette.mapCard },
+    helperTitle: { color: palette.text },
+    helperText: { color: palette.muted },
+    permissionButton: { backgroundColor: palette.primary },
+    bottomPanel: { backgroundColor: palette.surface },
+    attendanceSummaryCard: { backgroundColor: palette.surfaceSoft, borderColor: palette.border },
+    attendanceSummaryLabel: { color: palette.muted },
+    attendanceSummaryValue: { color: palette.text },
+    panelTitle: { color: palette.text },
+    panelDescription: { color: palette.muted },
+    noticeHeading: { color: palette.text },
+    noticeBulletMark: { color: palette.primary },
+    noticeBulletText: { color: palette.muted },
+    noticeBoldText: { color: palette.text },
+    noticeLinkText: { color: palette.primary },
+    primaryButton: { backgroundColor: palette.primary },
+    backButton: { borderColor: palette.border },
+    backButtonText: { color: palette.muted },
+    checkInButton: { backgroundColor: palette.primary },
+    secondaryButton: { backgroundColor: palette.primaryDark },
+    modalPrimaryButton: { backgroundColor: palette.primary },
+    modalSecondaryButton: { backgroundColor: palette.surfaceSoft },
+    modalTitle: { color: palette.text },
+    modalDescription: { color: palette.muted },
+  });
+}
+
 export default function App() {
+  const passwordInputRef = useRef(null);
   const [employeeCode, setEmployeeCode] = useState("");
   const [password, setPassword] = useState("");
   const [rememberEmployeeCode, setRememberEmployeeCode] = useState(false);
@@ -256,7 +414,10 @@ export default function App() {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [loadingLogin, setLoadingLogin] = useState(false);
+  const [loadingInvite, setLoadingInvite] = useState(false);
   const [submittingAttendance, setSubmittingAttendance] = useState(false);
+  const [inviteToken, setInviteToken] = useState("");
+  const [invitePreview, setInvitePreview] = useState(null);
   const [attendance, setAttendance] = useState(INITIAL_STATUS);
   const [attendanceMeta, setAttendanceMeta] = useState({
     attendanceDate: null,
@@ -272,6 +433,7 @@ export default function App() {
     longitude: COMPANY_LOCATION.longitude,
     allowedRadiusMeters: COMPANY_RADIUS_METERS,
     noticeMessage: "",
+    mobileSkinKey: "classic",
   });
 
   useEffect(() => {
@@ -292,6 +454,93 @@ export default function App() {
       });
     }
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function initializeInviteLink() {
+      const initialUrl =
+        Platform.OS === "web" && typeof window !== "undefined"
+          ? window.location.href
+          : await Linking.getInitialURL();
+      if (!active) {
+        return;
+      }
+
+      const token = extractInviteTokenFromUrl(initialUrl);
+      if (token) {
+        setInviteToken(token);
+      }
+    }
+
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      const token = extractInviteTokenFromUrl(url);
+      if (token) {
+        setInviteToken(token);
+      }
+    });
+
+    initializeInviteLink();
+
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!inviteToken) {
+      return;
+    }
+
+    setPassword("");
+
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      document.activeElement?.blur?.();
+      passwordInputRef.current?.blur?.();
+    }
+  }, [inviteToken]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadInvitePreview() {
+      if (!inviteToken) {
+        setInvitePreview(null);
+        return;
+      }
+
+      try {
+        setLoadingInvite(true);
+        setErrorMessage("");
+        const preview = await previewInvite({ inviteToken });
+        if (!active) {
+          return;
+        }
+        setInvitePreview(preview);
+        setEmployeeCode(preview.employeeCode || "");
+        setPassword("");
+        setRememberEmployeeCode(true);
+        saveEmployeeCode(preview.employeeCode || "");
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        setInvitePreview(null);
+        setErrorMessage(error.message || "초대 정보를 확인하지 못했습니다.");
+      } finally {
+        if (active) {
+          setLoadingInvite(false);
+        }
+      }
+    }
+
+    loadInvitePreview();
+
+    return () => {
+      active = false;
+    };
+  }, [inviteToken]);
 
   useEffect(() => {
     let active = true;
@@ -547,6 +796,11 @@ export default function App() {
     () => parseNoticeMessage(companySetting.noticeMessage),
     [companySetting.noticeMessage]
   );
+  const skinPalette = useMemo(
+    () => getSkinPalette(companySetting.mobileSkinKey),
+    [companySetting.mobileSkinKey]
+  );
+  const themeStyles = useMemo(() => createThemeStyles(skinPalette), [skinPalette]);
 
   async function handleLogin() {
     try {
@@ -584,6 +838,7 @@ export default function App() {
         longitude: COMPANY_LOCATION.longitude,
         allowedRadiusMeters: COMPANY_RADIUS_METERS,
         noticeMessage: "",
+        mobileSkinKey: "classic",
       });
     } catch (error) {
       showError("로그인 실패", error.message || "다시 시도해 주세요.");
@@ -635,6 +890,24 @@ export default function App() {
         newPassword: newPasswordInput,
       });
 
+      const cameFromInvite = Boolean(invitePreview);
+      setCurrentPasswordInput("");
+      setNewPasswordInput("");
+      setConfirmPasswordInput("");
+      setPassword("");
+
+      if (cameFromInvite) {
+        clearAuth();
+        setAuth(null);
+        setInvitePreview(null);
+        setInviteToken("");
+        Alert.alert(
+          "비밀번호 변경 완료",
+          response.message || "비밀번호가 변경되었습니다. 이제 새 비밀번호로 로그인해 주세요."
+        );
+        return;
+      }
+
       const nextAuth = {
         ...auth,
         user: {
@@ -645,10 +918,6 @@ export default function App() {
 
       setAuth(nextAuth);
       saveAuth(nextAuth);
-      setPassword(newPasswordInput);
-      setCurrentPasswordInput("");
-      setNewPasswordInput("");
-      setConfirmPasswordInput("");
       Alert.alert("비밀번호 변경 완료", response.message || "비밀번호가 변경되었습니다.");
     } catch (error) {
       showError("비밀번호 변경 실패", error.message || "잠시 후 다시 시도해 주세요.");
@@ -670,6 +939,16 @@ export default function App() {
       companyName: companySetting.companyName || COMPANY_NAME,
       workplaceName: companySetting.workplaceName || null,
       status: null,
+    });
+  }
+
+  function handleOpenInviteInApp() {
+    if (!inviteToken) {
+      return;
+    }
+
+    Linking.openURL(buildInviteAppUrl(inviteToken)).catch(() => {
+      showError("앱 열기 실패", "앱을 열지 못했습니다. 앱이 설치되어 있는지 확인해 주세요.");
     });
   }
 
@@ -747,17 +1026,30 @@ export default function App() {
   }
 
   if (!auth) {
+    const isInviteEntry = Boolean(invitePreview);
+
     return (
-      <SafeAreaView style={styles.authContainer}>
+      <SafeAreaView style={[styles.authContainer, themeStyles.authContainer]}>
         <StatusBar style="dark" />
-        <View style={styles.authCard}>
-          <Text style={styles.title}>출퇴근 체크</Text>
-          <Text style={styles.subtitle}>
-            {getDisplayLocationName(attendanceMeta, companySetting)} 출퇴근 서비스입니다. 로그인 후 브라우저에서 현재 위치를 확인하고 출근과 퇴근을 기록해 보세요. 로그인 상태는 같은 단말에서 최대 1년 유지됩니다.
+        <View style={[styles.authCard, themeStyles.authCard]}>
+          <Text style={[styles.title, themeStyles.title]}>출퇴근 체크</Text>
+          <Text style={[styles.subtitle, themeStyles.subtitle]}>
+            {isInviteEntry
+              ? "초대 링크로 들어왔습니다. 사번이 자동으로 입력되어 있습니다. 로그인하면 바로 비밀번호 변경 단계로 이동합니다."
+              : `${getDisplayLocationName(attendanceMeta, companySetting)} 출퇴근 서비스입니다. 로그인 후 브라우저에서 현재 위치를 확인하고 출근과 퇴근을 기록해 보세요. 로그인 상태는 같은 단말에서 최대 1년 유지됩니다.`}
           </Text>
           {errorMessage ? (
             <View style={styles.authErrorBox}>
               <Text style={styles.authErrorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
+          {loadingInvite ? (
+            <ActivityIndicator color="#1463ff" />
+          ) : invitePreview ? (
+            <View style={styles.inviteSummaryBox}>
+              <Text style={styles.inviteSummaryLine}>{invitePreview.companyName}</Text>
+              <Text style={styles.inviteSummaryLine}>{invitePreview.employeeName} ({invitePreview.employeeCode})</Text>
+              <Text style={styles.inviteSummaryMeta}>{invitePreview.workplaceName}</Text>
             </View>
           ) : null}
           <TextInput
@@ -765,22 +1057,27 @@ export default function App() {
             onChangeText={setEmployeeCode}
             placeholder="사번"
             placeholderTextColor="#8c98ad"
-            style={styles.input}
+            editable={!invitePreview}
+            style={[styles.input, themeStyles.input]}
             value={employeeCode}
           />
-          <TextInput
-            onChangeText={setPassword}
-            placeholder="비밀번호 (첫 로그인 직원은 비워두세요)"
-            placeholderTextColor="#8c98ad"
-            secureTextEntry
-            style={styles.input}
-            value={password}
-          />
+          {!isInviteEntry ? (
+            <TextInput
+              ref={passwordInputRef}
+              onChangeText={setPassword}
+              placeholder="비밀번호"
+              placeholderTextColor="#8c98ad"
+              autoComplete="off"
+              secureTextEntry
+              style={[styles.input, themeStyles.input]}
+              value={password}
+            />
+          ) : null}
           <Pressable
             onPress={handleToggleRememberEmployeeCode}
             style={styles.checkboxRow}
           >
-            <View style={[styles.checkbox, rememberEmployeeCode && styles.checkboxChecked]}>
+            <View style={[styles.checkbox, rememberEmployeeCode && styles.checkboxChecked, rememberEmployeeCode && themeStyles.checkboxChecked]}>
               {rememberEmployeeCode ? <Text style={styles.checkboxMark}>✓</Text> : null}
             </View>
             <Text style={styles.checkboxLabel}>아이디 저장</Text>
@@ -788,14 +1085,23 @@ export default function App() {
           <Pressable
             disabled={loadingLogin}
             onPress={handleLogin}
-            style={[styles.primaryButton, loadingLogin && styles.buttonDisabled]}
+            style={[styles.primaryButton, themeStyles.primaryButton, loadingLogin && styles.buttonDisabled]}
           >
             {loadingLogin ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.primaryButtonText}>로그인</Text>
+              <Text style={styles.primaryButtonText}>{isInviteEntry ? "등록 시작" : "로그인"}</Text>
             )}
           </Pressable>
+          {isInviteEntry ? (
+            <Pressable
+              disabled={loadingLogin}
+              onPress={handleOpenInviteInApp}
+              style={[styles.backButton, themeStyles.backButton, loadingLogin && styles.buttonDisabled]}
+            >
+              <Text style={[styles.backButtonText, themeStyles.backButtonText]}>앱에서 이어서 열기</Text>
+            </Pressable>
+          ) : null}
         </View>
       </SafeAreaView>
     );
@@ -803,11 +1109,11 @@ export default function App() {
 
   if (auth.user?.passwordChangeRequired) {
     return (
-      <SafeAreaView style={styles.authContainer}>
+      <SafeAreaView style={[styles.authContainer, themeStyles.authContainer]}>
         <StatusBar style="dark" />
-        <View style={styles.authCard}>
-          <Text style={styles.title}>비밀번호 변경</Text>
-          <Text style={styles.subtitle}>
+        <View style={[styles.authCard, themeStyles.authCard]}>
+          <Text style={[styles.title, themeStyles.title]}>비밀번호 변경</Text>
+          <Text style={[styles.subtitle, themeStyles.subtitle]}>
             처음 로그인한 직원은 새 비밀번호를 먼저 설정해야 합니다. 변경이 끝나면 그다음부터는 새 비밀번호로 로그인합니다.
           </Text>
           {errorMessage ? (
@@ -820,7 +1126,7 @@ export default function App() {
             placeholder="새 비밀번호 (8자 이상)"
             placeholderTextColor="#8c98ad"
             secureTextEntry
-            style={styles.input}
+            style={[styles.input, themeStyles.input]}
             value={newPasswordInput}
           />
           <TextInput
@@ -828,13 +1134,13 @@ export default function App() {
             placeholder="새 비밀번호 확인"
             placeholderTextColor="#8c98ad"
             secureTextEntry
-            style={styles.input}
+            style={[styles.input, themeStyles.input]}
             value={confirmPasswordInput}
           />
           <Pressable
             disabled={changingPassword}
             onPress={handleChangePassword}
-            style={[styles.primaryButton, changingPassword && styles.buttonDisabled]}
+            style={[styles.primaryButton, themeStyles.primaryButton, changingPassword && styles.buttonDisabled]}
           >
             {changingPassword ? (
               <ActivityIndicator color="#ffffff" />
@@ -845,9 +1151,9 @@ export default function App() {
           <Pressable
             disabled={changingPassword}
             onPress={handleBackToLogin}
-            style={[styles.backButton, changingPassword && styles.buttonDisabled]}
+            style={[styles.backButton, themeStyles.backButton, changingPassword && styles.buttonDisabled]}
           >
-            <Text style={styles.backButtonText}>뒤로가기</Text>
+            <Text style={[styles.backButtonText, themeStyles.backButtonText]}>뒤로가기</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -855,7 +1161,7 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, themeStyles.container]}>
       <StatusBar style="dark" />
       <Modal
         animationType="fade"
@@ -865,18 +1171,18 @@ export default function App() {
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>퇴근 확인</Text>
-            <Text style={styles.modalDescription}>지금 퇴근 처리하시겠어요?</Text>
+            <Text style={[styles.modalTitle, themeStyles.modalTitle]}>퇴근 확인</Text>
+            <Text style={[styles.modalDescription, themeStyles.modalDescription]}>지금 퇴근 처리하시겠어요?</Text>
             <View style={styles.modalButtonRow}>
               <Pressable
                 onPress={() => setShowCheckOutConfirm(false)}
-                style={[styles.modalButton, styles.modalSecondaryButton]}
+                style={[styles.modalButton, styles.modalSecondaryButton, themeStyles.modalSecondaryButton]}
               >
                 <Text style={styles.modalSecondaryButtonText}>취소</Text>
               </Pressable>
               <Pressable
                 onPress={submitCheckOut}
-                style={[styles.modalButton, styles.modalPrimaryButton]}
+                style={[styles.modalButton, styles.modalPrimaryButton, themeStyles.modalPrimaryButton]}
               >
                 <Text style={styles.modalPrimaryButtonText}>퇴근하기</Text>
               </Pressable>
@@ -891,12 +1197,12 @@ export default function App() {
       ) : null}
       <View style={styles.header}>
         <View>
-          <Text style={styles.welcomeText}>
-            {auth.user.name} <Text style={styles.welcomeCode}>({auth.user.employeeCode})</Text>
+          <Text style={[styles.welcomeText, themeStyles.headerText]}>
+            {auth.user.name} <Text style={[styles.welcomeCode, themeStyles.welcomeCode]}>({auth.user.employeeCode})</Text>
           </Text>
         </View>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
+        <View style={[styles.badge, themeStyles.badge]}>
+          <Text style={[styles.badgeText, themeStyles.badgeText]}>
             {DEMO_MODE
               ? distance == null
                 ? "DEMO"
@@ -909,33 +1215,33 @@ export default function App() {
       </View>
 
       <View style={styles.attendanceSummaryRow}>
-        <View style={styles.attendanceSummaryCard}>
-          <Text style={styles.attendanceSummaryLabel}>출근</Text>
-          <Text style={styles.attendanceSummaryValue}>{formatTime(attendance.checkedInAt)}</Text>
+        <View style={[styles.attendanceSummaryCard, themeStyles.attendanceSummaryCard]}>
+          <Text style={[styles.attendanceSummaryLabel, themeStyles.attendanceSummaryLabel]}>출근</Text>
+          <Text style={[styles.attendanceSummaryValue, themeStyles.attendanceSummaryValue]}>{formatTime(attendance.checkedInAt)}</Text>
         </View>
-        <View style={styles.attendanceSummaryCard}>
-          <Text style={styles.attendanceSummaryLabel}>퇴근</Text>
-          <Text style={styles.attendanceSummaryValue}>{formatTime(attendance.checkedOutAt)}</Text>
+        <View style={[styles.attendanceSummaryCard, themeStyles.attendanceSummaryCard]}>
+          <Text style={[styles.attendanceSummaryLabel, themeStyles.attendanceSummaryLabel]}>퇴근</Text>
+          <Text style={[styles.attendanceSummaryValue, themeStyles.attendanceSummaryValue]}>{formatTime(attendance.checkedOutAt)}</Text>
         </View>
       </View>
 
-      <View style={styles.mapCard}>
+      <View style={[styles.mapCard, themeStyles.mapCard]}>
         {loadingLocation ? (
           <View style={styles.centerState}>
             <ActivityIndicator size="large" color="#1463ff" />
-            <Text style={styles.helperText}>현재 위치를 확인하고 있습니다.</Text>
+            <Text style={[styles.helperText, themeStyles.helperText]}>현재 위치를 확인하고 있습니다.</Text>
           </View>
         ) : locationPermission !== "granted" ? (
           <View style={styles.centerState}>
-            <Text style={styles.helperTitle}>위치 권한이 필요합니다.</Text>
-            <Text style={styles.helperText}>
+            <Text style={[styles.helperTitle, themeStyles.helperTitle]}>위치 권한이 필요합니다.</Text>
+            <Text style={[styles.helperText, themeStyles.helperText]}>
               {Platform.OS === "web"
                 ? webLocationHelpText
                 : "권한을 허용하면 사업장 반경 안에서만 출근 버튼이 활성화됩니다."}
             </Text>
             <Pressable
               onPress={handleRetryLocationPermission}
-              style={styles.permissionButton}
+              style={[styles.permissionButton, themeStyles.permissionButton]}
             >
               <Text style={styles.permissionButtonText}>위치 권한 다시 요청</Text>
             </Pressable>
@@ -961,14 +1267,14 @@ export default function App() {
         )}
       </View>
 
-      <View style={styles.bottomPanel}>
-        <Text style={styles.panelTitle}>공지사항</Text>
+      <View style={[styles.bottomPanel, themeStyles.bottomPanel]}>
+        <Text style={[styles.panelTitle, themeStyles.panelTitle]}>공지사항</Text>
         {noticeBlocks.length > 0 ? (
           <View style={styles.noticeContent}>
             {noticeBlocks.map((block) => {
               if (block.type === "heading") {
                 return (
-                  <Text key={block.key} style={styles.noticeHeading}>
+                  <Text key={block.key} style={[styles.noticeHeading, themeStyles.noticeHeading]}>
                     {block.text}
                   </Text>
                 );
@@ -977,13 +1283,13 @@ export default function App() {
               if (block.type === "bullet") {
                 return (
                   <View key={block.key} style={styles.noticeBulletRow}>
-                    <Text style={styles.noticeBulletMark}>•</Text>
+                    <Text style={[styles.noticeBulletMark, themeStyles.noticeBulletMark]}>•</Text>
                     <View style={styles.noticeBulletTextWrap}>
                       {renderNoticeInline(
                         block.text,
-                        styles.noticeBulletText,
-                        styles.noticeBoldText,
-                        styles.noticeLinkText
+                        [styles.noticeBulletText, themeStyles.noticeBulletText],
+                        [styles.noticeBoldText, themeStyles.noticeBoldText],
+                        [styles.noticeLinkText, themeStyles.noticeLinkText]
                       )}
                     </View>
                   </View>
@@ -994,22 +1300,22 @@ export default function App() {
                 <View key={block.key} style={styles.noticeParagraphWrap}>
                   {renderNoticeInline(
                     block.text,
-                    styles.panelDescription,
-                    styles.noticeBoldText,
-                    styles.noticeLinkText
+                    [styles.panelDescription, themeStyles.panelDescription],
+                    [styles.noticeBoldText, themeStyles.noticeBoldText],
+                    [styles.noticeLinkText, themeStyles.noticeLinkText]
                   )}
                 </View>
               );
             })}
           </View>
         ) : (
-          <Text style={styles.panelDescription}>등록된 공지사항이 없습니다.</Text>
+          <Text style={[styles.panelDescription, themeStyles.panelDescription]}>등록된 공지사항이 없습니다.</Text>
         )}
 
         <Pressable
           disabled={!canCheckIn}
           onPress={handleCheckIn}
-          style={[styles.checkInButton, !canCheckIn && styles.buttonDisabled]}
+          style={[styles.checkInButton, themeStyles.checkInButton, !canCheckIn && styles.buttonDisabled]}
         >
           {submittingAttendance && !attendance.checkedInAt ? (
             <ActivityIndicator color="#ffffff" />
@@ -1021,7 +1327,7 @@ export default function App() {
         <Pressable
           disabled={!canCheckOut}
           onPress={handleCheckOut}
-          style={[styles.secondaryButton, !canCheckOut && styles.buttonDisabled]}
+          style={[styles.secondaryButton, themeStyles.secondaryButton, !canCheckOut && styles.buttonDisabled]}
         >
           {submittingAttendance && attendance.checkedInAt && !attendance.checkedOutAt ? (
             <ActivityIndicator color="#ffffff" />
@@ -1064,6 +1370,24 @@ const styles = StyleSheet.create({
     color: "#be123c",
     fontSize: 14,
     lineHeight: 20,
+  },
+  inviteSummaryBox: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  inviteSummaryLine: {
+    color: "#172033",
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  inviteSummaryMeta: {
+    color: "#5a657a",
+    fontSize: 13,
+    lineHeight: 19,
   },
   title: {
     color: "#172033",
