@@ -4,11 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
   Modal,
   Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -42,6 +44,14 @@ import {
   saveEmployeeCode,
   saveAuth,
 } from "./src/utils/authStorage";
+import {
+  clearCelebrationPhotos,
+  convertFilesToCelebrationPhotos,
+  loadCelebrationPhotos,
+  MAX_CELEBRATION_PHOTOS,
+  saveCelebrationPhotos,
+  selectRandomCelebrationPhoto,
+} from "./src/utils/celebrationPhotoStorage";
 import { getDistanceInMeters } from "./src/utils/location";
 
 const INITIAL_STATUS = {
@@ -435,6 +445,10 @@ export default function App() {
     noticeMessage: "",
     mobileSkinKey: "classic",
   });
+  const [celebrationPhotos, setCelebrationPhotos] = useState([]);
+  const [uploadingCelebrationPhotos, setUploadingCelebrationPhotos] = useState(false);
+  const [selectedCelebrationPhoto, setSelectedCelebrationPhoto] = useState(null);
+  const [showCelebrationPhoto, setShowCelebrationPhoto] = useState(false);
 
   useEffect(() => {
     const savedEmployeeCode = loadEmployeeCode();
@@ -453,6 +467,14 @@ export default function App() {
         status: null,
       });
     }
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") {
+      return;
+    }
+
+    setCelebrationPhotos(loadCelebrationPhotos());
   }, []);
 
   useEffect(() => {
@@ -581,6 +603,72 @@ export default function App() {
     const nextMessage = message || "알 수 없는 오류가 발생했습니다.";
     setErrorMessage(nextMessage);
     Alert.alert(title, nextMessage);
+  }
+
+  function showRandomCelebrationPhoto(photoCandidates = celebrationPhotos) {
+    const nextPhoto = selectRandomCelebrationPhoto(photoCandidates);
+    if (!nextPhoto) {
+      return;
+    }
+
+    setSelectedCelebrationPhoto(nextPhoto);
+    setShowCelebrationPhoto(true);
+  }
+
+  async function handleUploadCelebrationPhotos() {
+    if (Platform.OS !== "web" || typeof document === "undefined") {
+      Alert.alert("사진 업로드", "현재는 웹모바일에서 사진 업로드를 지원합니다.");
+      return;
+    }
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.multiple = true;
+
+    input.onchange = async (event) => {
+      const files = Array.from(event.target?.files || []);
+      if (!files.length) {
+        return;
+      }
+
+      try {
+        setUploadingCelebrationPhotos(true);
+        const nextPhotos = await convertFilesToCelebrationPhotos(files);
+        const mergedPhotos = [...celebrationPhotos, ...nextPhotos].slice(-MAX_CELEBRATION_PHOTOS);
+        saveCelebrationPhotos(mergedPhotos);
+        setCelebrationPhotos(mergedPhotos);
+
+        if (mergedPhotos.length !== celebrationPhotos.length + nextPhotos.length) {
+          Alert.alert(
+            "사진 보관함 업데이트",
+            `최근 사진 ${MAX_CELEBRATION_PHOTOS}장만 보관하도록 정리했습니다.`
+          );
+        }
+      } catch (error) {
+        showError("사진 업로드 실패", error.message || "사진을 불러오지 못했습니다.");
+      } finally {
+        setUploadingCelebrationPhotos(false);
+      }
+    };
+
+    input.click();
+  }
+
+  function handleClearCelebrationPhotos() {
+    Alert.alert("사진 모두 삭제", "업로드한 사진을 모두 지울까요?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: () => {
+          clearCelebrationPhotos();
+          setCelebrationPhotos([]);
+          setSelectedCelebrationPhoto(null);
+          setShowCelebrationPhoto(false);
+        },
+      },
+    ]);
   }
 
   async function requestAndWatchLocation(onLocationChange) {
@@ -972,6 +1060,7 @@ export default function App() {
         ...prev,
         checkedInAt: response.checkedInAt || new Date().toISOString(),
       }));
+      showRandomCelebrationPhoto();
       Alert.alert("출근 완료", response.message || "정상적으로 출근 처리되었습니다.");
     } catch (error) {
       showError("출근 처리 실패", error.message || "잠시 후 다시 시도해 주세요.");
@@ -1226,7 +1315,26 @@ export default function App() {
       </View>
 
       <View style={[styles.mapCard, themeStyles.mapCard]}>
-        {loadingLocation ? (
+        {showCelebrationPhoto && selectedCelebrationPhoto ? (
+          <View style={styles.celebrationPhotoWrap}>
+            <Image
+              resizeMode="cover"
+              source={{ uri: selectedCelebrationPhoto.dataUrl }}
+              style={styles.celebrationPhoto}
+            />
+            <View style={styles.celebrationPhotoScrim} />
+            <Pressable
+              onPress={() => setShowCelebrationPhoto(false)}
+              style={styles.celebrationPhotoCloseButton}
+            >
+              <Text style={styles.celebrationPhotoCloseButtonText}>닫기</Text>
+            </Pressable>
+            <View style={styles.celebrationPhotoCaption}>
+              <Text style={styles.celebrationPhotoCaptionEyebrow}>오늘의 랜덤 사진</Text>
+              <Text style={styles.celebrationPhotoCaptionTitle}>출근 완료를 축하해요</Text>
+            </View>
+          </View>
+        ) : loadingLocation ? (
           <View style={styles.centerState}>
             <ActivityIndicator size="large" color="#1463ff" />
             <Text style={[styles.helperText, themeStyles.helperText]}>현재 위치를 확인하고 있습니다.</Text>
@@ -1268,6 +1376,62 @@ export default function App() {
       </View>
 
       <View style={[styles.bottomPanel, themeStyles.bottomPanel]}>
+        <View style={styles.photoLibraryHeader}>
+          <View style={styles.photoLibraryTextBlock}>
+            <Text style={[styles.panelTitle, themeStyles.panelTitle]}>내 사진 보관함</Text>
+            <Text style={[styles.photoLibraryHelperText, themeStyles.panelDescription]}>
+              출근 완료 후 지도 영역에 등록한 사진이 랜덤으로 표시됩니다.
+            </Text>
+          </View>
+          <View style={styles.photoLibraryBadge}>
+            <Text style={styles.photoLibraryBadgeText}>
+              {celebrationPhotos.length}/{MAX_CELEBRATION_PHOTOS}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.photoLibraryActionRow}>
+          <Pressable
+            disabled={uploadingCelebrationPhotos}
+            onPress={handleUploadCelebrationPhotos}
+            style={[styles.photoLibraryPrimaryButton, uploadingCelebrationPhotos && styles.buttonDisabled]}
+          >
+            {uploadingCelebrationPhotos ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.photoLibraryPrimaryButtonText}>사진 추가</Text>
+            )}
+          </Pressable>
+          <Pressable
+            disabled={!celebrationPhotos.length}
+            onPress={handleClearCelebrationPhotos}
+            style={[styles.photoLibrarySecondaryButton, !celebrationPhotos.length && styles.buttonDisabled]}
+          >
+            <Text style={styles.photoLibrarySecondaryButtonText}>모두 지우기</Text>
+          </Pressable>
+        </View>
+
+        {celebrationPhotos.length ? (
+          <ScrollView
+            contentContainerStyle={styles.photoThumbnailRow}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          >
+            {celebrationPhotos.map((photo, index) => (
+              <View key={photo.id} style={styles.photoThumbnailCard}>
+                <Image source={{ uri: photo.dataUrl }} style={styles.photoThumbnailImage} />
+                <View style={styles.photoThumbnailBadge}>
+                  <Text style={styles.photoThumbnailBadgeText}>{index + 1}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        ) : (
+          <Text style={[styles.photoLibraryEmptyText, themeStyles.panelDescription]}>
+            아직 사진이 없습니다. 원하는 사진을 올려두면 출근 완료 후 지도 자리에 랜덤으로 보여드릴게요.
+          </Text>
+        )}
+
         <Text style={[styles.panelTitle, themeStyles.panelTitle]}>공지사항</Text>
         {noticeBlocks.length > 0 ? (
           <View style={styles.noticeContent}>
@@ -1496,6 +1660,58 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
+  celebrationPhotoWrap: {
+    flex: 1,
+    position: "relative",
+  },
+  celebrationPhoto: {
+    height: "100%",
+    width: "100%",
+  },
+  celebrationPhotoScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15, 23, 42, 0.12)",
+  },
+  celebrationPhotoCloseButton: {
+    position: "absolute",
+    right: 14,
+    top: 14,
+    backgroundColor: "rgba(255,255,255,0.88)",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  celebrationPhotoCloseButtonText: {
+    color: "#172033",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  celebrationPhotoCaption: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 16,
+    backgroundColor: "rgba(15,23,42,0.58)",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  celebrationPhotoCaptionEyebrow: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  celebrationPhotoCaptionTitle: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "800",
+  },
   centerState: {
     alignItems: "center",
     flex: 1,
@@ -1542,6 +1758,98 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 22,
+  },
+  photoLibraryHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 10,
+  },
+  photoLibraryTextBlock: {
+    flex: 1,
+  },
+  photoLibraryHelperText: {
+    marginBottom: 0,
+  },
+  photoLibraryBadge: {
+    backgroundColor: "#eef3fb",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  photoLibraryBadgeText: {
+    color: "#1463ff",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  photoLibraryActionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 14,
+  },
+  photoLibraryPrimaryButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 16,
+    backgroundColor: "#1463ff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoLibraryPrimaryButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  photoLibrarySecondaryButton: {
+    minHeight: 48,
+    borderRadius: 16,
+    backgroundColor: "#edf1f7",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  photoLibrarySecondaryButtonText: {
+    color: "#455468",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  photoThumbnailRow: {
+    gap: 10,
+    paddingBottom: 10,
+    paddingRight: 20,
+  },
+  photoThumbnailCard: {
+    width: 88,
+    height: 88,
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "#dbe4f0",
+    position: "relative",
+  },
+  photoThumbnailImage: {
+    width: "100%",
+    height: "100%",
+  },
+  photoThumbnailBadge: {
+    position: "absolute",
+    right: 8,
+    top: 8,
+    backgroundColor: "rgba(15,23,42,0.75)",
+    borderRadius: 999,
+    minWidth: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  photoThumbnailBadgeText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  photoLibraryEmptyText: {
+    marginBottom: 16,
   },
   attendanceSummaryRow: {
     flexDirection: "row",
