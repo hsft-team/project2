@@ -1683,29 +1683,31 @@ export default function App() {
           <Text style={[styles.panelDescription, themeStyles.panelDescription]}>등록된 공지사항이 없습니다.</Text>
         )}
 
-        <Pressable
-          disabled={!canCheckIn}
-          onPress={handleCheckIn}
-          style={[styles.checkInButton, themeStyles.checkInButton, !canCheckIn && styles.buttonDisabled]}
-        >
-          {submittingAttendance && !attendance.checkedInAt ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.checkInButtonText}>출근하기</Text>
-          )}
-        </Pressable>
+        <View style={styles.actionRow}>
+          <Pressable
+            disabled={!canCheckIn}
+            onPress={handleCheckIn}
+            style={[styles.checkInButton, styles.actionButton, themeStyles.checkInButton, !canCheckIn && styles.buttonDisabled]}
+          >
+            {submittingAttendance && !attendance.checkedInAt ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.checkInButtonText}>출근하기</Text>
+            )}
+          </Pressable>
 
-        <Pressable
-          disabled={!canCheckOut}
-          onPress={handleCheckOut}
-          style={[styles.secondaryButton, themeStyles.secondaryButton, !canCheckOut && styles.buttonDisabled]}
-        >
-          {submittingAttendance && attendance.checkedInAt && !attendance.checkedOutAt ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.secondaryButtonText}>퇴근하기</Text>
-          )}
-        </Pressable>
+          <Pressable
+            disabled={!canCheckOut}
+            onPress={handleCheckOut}
+            style={[styles.secondaryButton, styles.actionButton, themeStyles.secondaryButton, !canCheckOut && styles.buttonDisabled]}
+          >
+            {submittingAttendance && attendance.checkedInAt && !attendance.checkedOutAt ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.secondaryButtonText}>퇴근하기</Text>
+            )}
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -2103,6 +2105,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderRadius: 28,
     backgroundColor: "#dfe7f4",
+    minHeight: 360,
   },
   map: {
     flex: 1,
@@ -2203,8 +2206,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 22,
+    paddingTop: 14,
+    paddingBottom: 18,
   },
   attendanceSummaryRow: {
     flexDirection: "row",
@@ -2268,14 +2271,14 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   noticeViewportCollapsed: {
-    maxHeight: 124,
+    maxHeight: 88,
   },
   noticeViewportExpanded: {
-    maxHeight: 236,
+    maxHeight: 180,
   },
   noticeContent: {
     gap: 8,
-    minHeight: 108,
+    minHeight: 72,
   },
   noticeHeading: {
     color: "#172033",
@@ -2356,12 +2359,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#1463ff",
     borderRadius: 22,
     justifyContent: "center",
-    minHeight: 68,
-    marginBottom: 12,
+    minHeight: 62,
   },
   checkInButtonText: {
     color: "#ffffff",
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "800",
   },
   secondaryButton: {
@@ -2369,12 +2371,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#172033",
     borderRadius: 18,
     justifyContent: "center",
-    minHeight: 54,
+    minHeight: 62,
   },
   secondaryButtonText: {
     color: "#ffffff",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
   },
   buttonDisabled: {
     opacity: 0.45,
