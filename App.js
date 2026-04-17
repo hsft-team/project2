@@ -1021,11 +1021,11 @@ export default function App() {
   );
   const themeStyles = useMemo(() => createThemeStyles(skinPalette), [skinPalette]);
   const mapCardHeight = useMemo(
-    () => Math.max(260, Math.min(420, Math.round(windowHeight * 0.42))),
+    () => Math.max(280, Math.min(460, Math.round(windowHeight * 0.46))),
     [windowHeight]
   );
   const collapsedNoticeHeight = useMemo(
-    () => Math.max(44, Math.min(56, Math.round(windowHeight * 0.07))),
+    () => Math.max(34, Math.min(46, Math.round(windowHeight * 0.055))),
     [windowHeight]
   );
 
@@ -1751,8 +1751,8 @@ export default function App() {
           >
             <ScrollView
               nestedScrollEnabled
-              scrollEnabled={false}
-              showsVerticalScrollIndicator={false}
+              scrollEnabled
+              showsVerticalScrollIndicator
             >
               <View style={styles.noticeContent}>
                 {noticeBlocks.map((block) => {
@@ -2399,12 +2399,12 @@ const styles = StyleSheet.create({
   },
   noticeViewport: {
     overflow: "hidden",
-    marginBottom: 10,
+    marginBottom: 8,
     borderRadius: 14,
   },
   noticeContent: {
     gap: 8,
-    minHeight: 44,
+    minHeight: 34,
   },
   noticeSheetCard: {
     maxHeight: "72%",
