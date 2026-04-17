@@ -484,7 +484,6 @@ export default function App() {
       const savedActivePhoto = savedSettings.photos.find((photo) => photo.id === savedSettings.activePhotoId);
       if (savedActivePhoto) {
         setActiveCelebrationPhoto(savedActivePhoto);
-        setShowCelebrationPhoto(true);
       }
     }
   }, []);
@@ -935,6 +934,47 @@ export default function App() {
     attendanceMeta.attendanceDate &&
     attendanceMeta.attendanceDate !== seoulNow.date
   ) ? INITIAL_STATUS : attendance;
+
+  useEffect(() => {
+    if (!effectiveAttendance.checkedInAt || !celebrationEnabled || !activeCelebrationPhoto) {
+      setShowCelebrationPhoto(false);
+      return;
+    }
+
+    setShowCelebrationPhoto(true);
+  }, [activeCelebrationPhoto, celebrationEnabled, effectiveAttendance.checkedInAt]);
+
+  useEffect(() => {
+    if (!effectiveAttendance.checkedInAt || !celebrationEnabled || !celebrationPhotos.length) {
+      return;
+    }
+
+    const activePhotoStillExists = activeCelebrationPhoto
+      ? celebrationPhotos.some((photo) => photo.id === activeCelebrationPhoto.id)
+      : false;
+
+    if (activePhotoStillExists) {
+      return;
+    }
+
+    const fallbackPhoto = pickRandomCelebrationPhoto(celebrationPhotos);
+    if (!fallbackPhoto) {
+      return;
+    }
+
+    persistCelebrationSettings({
+      enabled: celebrationEnabled,
+      photos: celebrationPhotos,
+      activePhotoId: fallbackPhoto.id,
+    });
+    setActiveCelebrationPhoto(fallbackPhoto);
+    setShowCelebrationPhoto(true);
+  }, [
+    activeCelebrationPhoto,
+    celebrationEnabled,
+    celebrationPhotos,
+    effectiveAttendance.checkedInAt,
+  ]);
 
   const canCheckIn =
     Boolean(auth) &&
