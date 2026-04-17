@@ -15,6 +15,7 @@ import {
   Switch,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -411,6 +412,7 @@ function createThemeStyles(palette) {
 
 export default function App() {
   const passwordInputRef = useRef(null);
+  const { height: windowHeight } = useWindowDimensions();
   const [employeeCode, setEmployeeCode] = useState("");
   const [password, setPassword] = useState("");
   const [rememberEmployeeCode, setRememberEmployeeCode] = useState(false);
@@ -999,6 +1001,18 @@ export default function App() {
     [companySetting.mobileSkinKey]
   );
   const themeStyles = useMemo(() => createThemeStyles(skinPalette), [skinPalette]);
+  const mapCardHeight = useMemo(
+    () => Math.max(260, Math.min(420, Math.round(windowHeight * 0.42))),
+    [windowHeight]
+  );
+  const collapsedNoticeHeight = useMemo(
+    () => Math.max(70, Math.min(88, Math.round(windowHeight * 0.1))),
+    [windowHeight]
+  );
+  const expandedNoticeHeight = useMemo(
+    () => Math.max(110, Math.min(160, Math.round(windowHeight * 0.18))),
+    [windowHeight]
+  );
 
   useEffect(() => {
     setIsNoticeExpanded(false);
@@ -1553,7 +1567,7 @@ export default function App() {
         </View>
       </View>
 
-      <View style={[styles.mapCard, themeStyles.mapCard]}>
+      <View style={[styles.mapCard, themeStyles.mapCard, { height: mapCardHeight, minHeight: mapCardHeight }]}>
         {showCelebrationPhoto && activeCelebrationPhoto ? (
           <View style={styles.celebrationPhotoWrap}>
             <Image
@@ -1632,7 +1646,7 @@ export default function App() {
           <View
             style={[
               styles.noticeViewport,
-              isNoticeExpanded ? styles.noticeViewportExpanded : styles.noticeViewportCollapsed,
+              { maxHeight: isNoticeExpanded ? expandedNoticeHeight : collapsedNoticeHeight },
             ]}
           >
             <ScrollView
@@ -2100,12 +2114,10 @@ const styles = StyleSheet.create({
     marginVertical: 1.5,
   },
   mapCard: {
-    flex: 1,
     marginHorizontal: 16,
     overflow: "hidden",
     borderRadius: 28,
     backgroundColor: "#dfe7f4",
-    minHeight: 360,
   },
   map: {
     flex: 1,
@@ -2206,8 +2218,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 18,
+    paddingTop: 12,
+    paddingBottom: 14,
   },
   attendanceSummaryRow: {
     flexDirection: "row",
@@ -2262,23 +2274,17 @@ const styles = StyleSheet.create({
   },
   panelDescription: {
     color: "#59657a",
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 12,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 10,
   },
   noticeViewport: {
     overflow: "hidden",
-    marginBottom: 18,
-  },
-  noticeViewportCollapsed: {
-    maxHeight: 88,
-  },
-  noticeViewportExpanded: {
-    maxHeight: 180,
+    marginBottom: 14,
   },
   noticeContent: {
     gap: 8,
-    minHeight: 72,
+    minHeight: 64,
   },
   noticeHeading: {
     color: "#172033",
@@ -2305,8 +2311,8 @@ const styles = StyleSheet.create({
   },
   noticeBulletText: {
     color: "#59657a",
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
   },
   noticeBoldText: {
     fontWeight: "800",
