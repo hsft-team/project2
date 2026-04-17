@@ -2332,6 +2332,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   bottomPanel: {
+    flex: 1,
     backgroundColor: "#ffffff",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
@@ -2514,6 +2515,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     alignItems: "center",
+    marginTop: "auto",
   },
   actionButton: {
     flex: 1,
