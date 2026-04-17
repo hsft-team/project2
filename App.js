@@ -1025,7 +1025,7 @@ export default function App() {
     [windowHeight]
   );
   const collapsedNoticeHeight = useMemo(
-    () => Math.max(34, Math.min(46, Math.round(windowHeight * 0.055))),
+    () => Math.max(38, Math.min(52, Math.round(windowHeight * 0.062))),
     [windowHeight]
   );
 
@@ -2404,7 +2404,7 @@ const styles = StyleSheet.create({
   },
   noticeContent: {
     gap: 8,
-    minHeight: 34,
+    minHeight: 38,
   },
   noticeSheetCard: {
     maxHeight: "72%",
