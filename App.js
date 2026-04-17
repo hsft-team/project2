@@ -2336,8 +2336,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 14,
+    paddingTop: 10,
+    paddingBottom: 8,
   },
   attendanceSummaryRow: {
     flexDirection: "row",
@@ -2370,7 +2370,7 @@ const styles = StyleSheet.create({
     color: "#172033",
     fontSize: 18,
     fontWeight: "800",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   noticeHeaderRow: {
     flexDirection: "row",
@@ -2383,7 +2383,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   noticeToggleButtonText: {
     color: "#1463ff",
@@ -2394,11 +2394,11 @@ const styles = StyleSheet.create({
     color: "#59657a",
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 10,
+    marginBottom: 6,
   },
   noticeViewport: {
     overflow: "hidden",
-    marginBottom: 14,
+    marginBottom: 10,
     borderRadius: 14,
   },
   noticeContent: {
@@ -2513,6 +2513,7 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: "row",
     gap: 12,
+    alignItems: "center",
   },
   actionButton: {
     flex: 1,
