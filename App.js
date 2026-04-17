@@ -425,6 +425,7 @@ export default function App() {
   const [showCheckOutConfirm, setShowCheckOutConfirm] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showImageSettings, setShowImageSettings] = useState(false);
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [locationPermission, setLocationPermission] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
@@ -455,7 +456,6 @@ export default function App() {
   const [uploadingCelebrationPhotos, setUploadingCelebrationPhotos] = useState(false);
   const [activeCelebrationPhoto, setActiveCelebrationPhoto] = useState(null);
   const [showCelebrationPhoto, setShowCelebrationPhoto] = useState(false);
-  const [isNoticeExpanded, setIsNoticeExpanded] = useState(false);
 
   useEffect(() => {
     const savedEmployeeCode = loadEmployeeCode();
@@ -484,12 +484,6 @@ export default function App() {
     const savedSettings = loadCelebrationSettings();
     setCelebrationEnabled(savedSettings.enabled);
     setCelebrationPhotos(savedSettings.photos);
-    if (savedSettings.enabled && savedSettings.activePhotoId) {
-      const savedActivePhoto = savedSettings.photos.find((photo) => photo.id === savedSettings.activePhotoId);
-      if (savedActivePhoto) {
-        setActiveCelebrationPhoto(savedActivePhoto);
-      }
-    }
   }, []);
 
   useEffect(() => {
@@ -649,7 +643,11 @@ export default function App() {
       return null;
     }
 
-    const nextPhoto = pickRandomCelebrationPhoto(photoCandidates);
+    const availablePhotos =
+      photoCandidates.length > 1 && activeCelebrationPhoto
+        ? photoCandidates.filter((photo) => photo.id !== activeCelebrationPhoto.id)
+        : photoCandidates;
+    const nextPhoto = pickRandomCelebrationPhoto(availablePhotos);
     if (!nextPhoto) {
       return null;
     }
@@ -1027,17 +1025,9 @@ export default function App() {
     [windowHeight]
   );
   const collapsedNoticeHeight = useMemo(
-    () => Math.max(70, Math.min(88, Math.round(windowHeight * 0.1))),
+    () => Math.max(44, Math.min(56, Math.round(windowHeight * 0.07))),
     [windowHeight]
   );
-  const expandedNoticeHeight = useMemo(
-    () => Math.max(110, Math.min(160, Math.round(windowHeight * 0.18))),
-    [windowHeight]
-  );
-
-  useEffect(() => {
-    setIsNoticeExpanded(false);
-  }, [companySetting.noticeMessage]);
 
   async function handleLogin() {
     try {
@@ -1555,6 +1545,80 @@ export default function App() {
           </View>
         </View>
       </Modal>
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showNoticeModal}
+        onRequestClose={() => setShowNoticeModal(false)}
+      >
+        <View style={styles.sheetBackdrop}>
+          <View style={[styles.sheetCard, styles.noticeSheetCard]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeaderRow}>
+              <View style={styles.sheetHeaderTextWrap}>
+                <Text style={styles.sheetTitle}>공지사항 전체 보기</Text>
+                <Text style={styles.sheetDescription}>
+                  운영 공지와 안내 문구를 한 번에 확인할 수 있습니다.
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setShowNoticeModal(false)}
+                style={styles.sheetCloseButton}
+              >
+                <Text style={styles.sheetCloseButtonText}>닫기</Text>
+              </Pressable>
+            </View>
+
+            {noticeBlocks.length > 0 ? (
+              <ScrollView
+                contentContainerStyle={styles.noticeSheetContent}
+                showsVerticalScrollIndicator
+              >
+                {noticeBlocks.map((block) => {
+                  if (block.type === "heading") {
+                    return (
+                      <Text key={block.key} style={[styles.noticeHeading, themeStyles.noticeHeading]}>
+                        {block.text}
+                      </Text>
+                    );
+                  }
+
+                  if (block.type === "bullet") {
+                    return (
+                      <View key={block.key} style={styles.noticeBulletRow}>
+                        <Text style={[styles.noticeBulletMark, themeStyles.noticeBulletMark]}>•</Text>
+                        <View style={styles.noticeBulletTextWrap}>
+                          {renderNoticeInline(
+                            block.text,
+                            [styles.noticeBulletText, themeStyles.noticeBulletText],
+                            [styles.noticeBoldText, themeStyles.noticeBoldText],
+                            [styles.noticeLinkText, themeStyles.noticeLinkText]
+                          )}
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <View key={block.key} style={styles.noticeParagraphWrap}>
+                      {renderNoticeInline(
+                        block.text,
+                        [styles.panelDescription, themeStyles.panelDescription],
+                        [styles.noticeBoldText, themeStyles.noticeBoldText],
+                        [styles.noticeLinkText, themeStyles.noticeLinkText]
+                      )}
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <Text style={[styles.panelDescription, themeStyles.panelDescription]}>
+                등록된 공지사항이 없습니다.
+              </Text>
+            )}
+          </View>
+        </View>
+      </Modal>
       {errorMessage ? (
         <View style={styles.errorBanner}>
           <Text style={styles.errorBannerText}>{errorMessage}</Text>
@@ -1603,8 +1667,16 @@ export default function App() {
             <Image
               resizeMode="cover"
               source={{ uri: activeCelebrationPhoto.dataUrl }}
-              style={styles.celebrationPhoto}
+              style={styles.celebrationPhotoBackground}
             />
+            <View style={styles.celebrationPhotoBackdrop} />
+            <View style={styles.celebrationPhotoInner}>
+              <Image
+                resizeMode="contain"
+                source={{ uri: activeCelebrationPhoto.dataUrl }}
+                style={styles.celebrationPhoto}
+              />
+            </View>
             <View style={styles.celebrationPhotoScrim} />
             <Pressable
               onPress={() => setShowCelebrationPhoto(false)}
@@ -1663,12 +1735,10 @@ export default function App() {
           <Text style={[styles.panelTitle, themeStyles.panelTitle]}>공지사항</Text>
           {hasLongNotice ? (
             <Pressable
-              onPress={() => setIsNoticeExpanded((prev) => !prev)}
+              onPress={() => setShowNoticeModal(true)}
               style={styles.noticeToggleButton}
             >
-              <Text style={styles.noticeToggleButtonText}>
-                {isNoticeExpanded ? "줄이기" : "늘리기"}
-              </Text>
+              <Text style={styles.noticeToggleButtonText}>전체 보기</Text>
             </Pressable>
           ) : null}
         </View>
@@ -1676,12 +1746,13 @@ export default function App() {
           <View
             style={[
               styles.noticeViewport,
-              { maxHeight: isNoticeExpanded ? expandedNoticeHeight : collapsedNoticeHeight },
+              { maxHeight: collapsedNoticeHeight },
             ]}
           >
             <ScrollView
               nestedScrollEnabled
-              showsVerticalScrollIndicator={isNoticeExpanded}
+              scrollEnabled={false}
+              showsVerticalScrollIndicator={false}
             >
               <View style={styles.noticeContent}>
                 {noticeBlocks.map((block) => {
@@ -2155,14 +2226,31 @@ const styles = StyleSheet.create({
   celebrationPhotoWrap: {
     flex: 1,
     position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0f172a",
+  },
+  celebrationPhotoBackground: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.38,
   },
   celebrationPhoto: {
     width: "100%",
     height: "100%",
   },
+  celebrationPhotoBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15, 23, 42, 0.22)",
+  },
+  celebrationPhotoInner: {
+    width: "100%",
+    height: "100%",
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+  },
   celebrationPhotoScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(15, 23, 42, 0.12)",
+    backgroundColor: "rgba(15, 23, 42, 0.08)",
   },
   celebrationPhotoCloseButton: {
     position: "absolute",
@@ -2294,7 +2382,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#edf3ff",
     borderRadius: 999,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     marginBottom: 10,
   },
   noticeToggleButtonText: {
@@ -2311,10 +2399,18 @@ const styles = StyleSheet.create({
   noticeViewport: {
     overflow: "hidden",
     marginBottom: 14,
+    borderRadius: 14,
   },
   noticeContent: {
     gap: 8,
-    minHeight: 64,
+    minHeight: 44,
+  },
+  noticeSheetCard: {
+    maxHeight: "72%",
+  },
+  noticeSheetContent: {
+    gap: 8,
+    paddingBottom: 12,
   },
   noticeHeading: {
     color: "#172033",
