@@ -452,6 +452,7 @@ export default function App() {
   const [uploadingCelebrationPhotos, setUploadingCelebrationPhotos] = useState(false);
   const [activeCelebrationPhoto, setActiveCelebrationPhoto] = useState(null);
   const [showCelebrationPhoto, setShowCelebrationPhoto] = useState(false);
+  const [isNoticeExpanded, setIsNoticeExpanded] = useState(false);
 
   useEffect(() => {
     const savedEmployeeCode = loadEmployeeCode();
@@ -992,11 +993,16 @@ export default function App() {
     () => parseNoticeMessage(companySetting.noticeMessage),
     [companySetting.noticeMessage]
   );
+  const hasLongNotice = noticeBlocks.length > 3;
   const skinPalette = useMemo(
     () => getSkinPalette(companySetting.mobileSkinKey),
     [companySetting.mobileSkinKey]
   );
   const themeStyles = useMemo(() => createThemeStyles(skinPalette), [skinPalette]);
+
+  useEffect(() => {
+    setIsNoticeExpanded(false);
+  }, [companySetting.noticeMessage]);
 
   async function handleLogin() {
     try {
@@ -1609,45 +1615,69 @@ export default function App() {
       </View>
 
       <View style={[styles.bottomPanel, themeStyles.bottomPanel]}>
-        <Text style={[styles.panelTitle, themeStyles.panelTitle]}>공지사항</Text>
+        <View style={styles.noticeHeaderRow}>
+          <Text style={[styles.panelTitle, themeStyles.panelTitle]}>공지사항</Text>
+          {hasLongNotice ? (
+            <Pressable
+              onPress={() => setIsNoticeExpanded((prev) => !prev)}
+              style={styles.noticeToggleButton}
+            >
+              <Text style={styles.noticeToggleButtonText}>
+                {isNoticeExpanded ? "줄이기" : "늘리기"}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
         {noticeBlocks.length > 0 ? (
-          <View style={styles.noticeContent}>
-            {noticeBlocks.map((block) => {
-              if (block.type === "heading") {
-                return (
-                  <Text key={block.key} style={[styles.noticeHeading, themeStyles.noticeHeading]}>
-                    {block.text}
-                  </Text>
-                );
-              }
+          <View
+            style={[
+              styles.noticeViewport,
+              isNoticeExpanded ? styles.noticeViewportExpanded : styles.noticeViewportCollapsed,
+            ]}
+          >
+            <ScrollView
+              nestedScrollEnabled
+              showsVerticalScrollIndicator={isNoticeExpanded}
+            >
+              <View style={styles.noticeContent}>
+                {noticeBlocks.map((block) => {
+                  if (block.type === "heading") {
+                    return (
+                      <Text key={block.key} style={[styles.noticeHeading, themeStyles.noticeHeading]}>
+                        {block.text}
+                      </Text>
+                    );
+                  }
 
-              if (block.type === "bullet") {
-                return (
-                  <View key={block.key} style={styles.noticeBulletRow}>
-                    <Text style={[styles.noticeBulletMark, themeStyles.noticeBulletMark]}>•</Text>
-                    <View style={styles.noticeBulletTextWrap}>
+                  if (block.type === "bullet") {
+                    return (
+                      <View key={block.key} style={styles.noticeBulletRow}>
+                        <Text style={[styles.noticeBulletMark, themeStyles.noticeBulletMark]}>•</Text>
+                        <View style={styles.noticeBulletTextWrap}>
+                          {renderNoticeInline(
+                            block.text,
+                            [styles.noticeBulletText, themeStyles.noticeBulletText],
+                            [styles.noticeBoldText, themeStyles.noticeBoldText],
+                            [styles.noticeLinkText, themeStyles.noticeLinkText]
+                          )}
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <View key={block.key} style={styles.noticeParagraphWrap}>
                       {renderNoticeInline(
                         block.text,
-                        [styles.noticeBulletText, themeStyles.noticeBulletText],
+                        [styles.panelDescription, themeStyles.panelDescription],
                         [styles.noticeBoldText, themeStyles.noticeBoldText],
                         [styles.noticeLinkText, themeStyles.noticeLinkText]
                       )}
                     </View>
-                  </View>
-                );
-              }
-
-              return (
-                <View key={block.key} style={styles.noticeParagraphWrap}>
-                  {renderNoticeInline(
-                    block.text,
-                    [styles.panelDescription, themeStyles.panelDescription],
-                    [styles.noticeBoldText, themeStyles.noticeBoldText],
-                    [styles.noticeLinkText, themeStyles.noticeLinkText]
-                  )}
-                </View>
-              );
-            })}
+                  );
+                })}
+              </View>
+            </ScrollView>
           </View>
         ) : (
           <Text style={[styles.panelDescription, themeStyles.panelDescription]}>등록된 공지사항이 없습니다.</Text>
@@ -2209,16 +2239,43 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginBottom: 10,
   },
+  noticeHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  noticeToggleButton: {
+    backgroundColor: "#edf3ff",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+  },
+  noticeToggleButtonText: {
+    color: "#1463ff",
+    fontSize: 13,
+    fontWeight: "800",
+  },
   panelDescription: {
     color: "#59657a",
     fontSize: 15,
     lineHeight: 22,
     marginBottom: 12,
   },
+  noticeViewport: {
+    overflow: "hidden",
+    marginBottom: 18,
+  },
+  noticeViewportCollapsed: {
+    maxHeight: 124,
+  },
+  noticeViewportExpanded: {
+    maxHeight: 236,
+  },
   noticeContent: {
     gap: 8,
     minHeight: 108,
-    marginBottom: 18,
   },
   noticeHeading: {
     color: "#172033",
