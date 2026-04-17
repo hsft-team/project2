@@ -1661,7 +1661,7 @@ export default function App() {
         </View>
       </View>
 
-      <View style={[styles.mapCard, themeStyles.mapCard, { height: mapCardHeight, minHeight: mapCardHeight }]}>
+      <View style={[styles.mapCard, themeStyles.mapCard, { minHeight: mapCardHeight }]}>
         {showCelebrationPhoto && activeCelebrationPhoto ? (
           <View style={styles.celebrationPhotoWrap}>
             <Image
@@ -2215,6 +2215,7 @@ const styles = StyleSheet.create({
     marginVertical: 1.5,
   },
   mapCard: {
+    flex: 1,
     marginHorizontal: 16,
     overflow: "hidden",
     borderRadius: 28,
@@ -2332,7 +2333,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   bottomPanel: {
-    flex: 1,
     backgroundColor: "#ffffff",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
@@ -2515,7 +2515,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     alignItems: "center",
-    marginTop: "auto",
+    marginTop: 10,
   },
   actionButton: {
     flex: 1,
