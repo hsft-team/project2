@@ -4,12 +4,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
   Modal,
   Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -42,6 +45,13 @@ import {
   saveEmployeeCode,
   saveAuth,
 } from "./src/utils/authStorage";
+import {
+  convertFilesToCelebrationPhotos,
+  loadCelebrationSettings,
+  MAX_CELEBRATION_PHOTOS,
+  pickRandomCelebrationPhoto,
+  saveCelebrationSettings,
+} from "./src/utils/celebrationPhotoStorage";
 import { getDistanceInMeters } from "./src/utils/location";
 
 const INITIAL_STATUS = {
@@ -410,6 +420,8 @@ export default function App() {
   const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
   const [showCheckOutConfirm, setShowCheckOutConfirm] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showImageSettings, setShowImageSettings] = useState(false);
   const [locationPermission, setLocationPermission] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
@@ -435,6 +447,11 @@ export default function App() {
     noticeMessage: "",
     mobileSkinKey: "classic",
   });
+  const [celebrationEnabled, setCelebrationEnabled] = useState(false);
+  const [celebrationPhotos, setCelebrationPhotos] = useState([]);
+  const [uploadingCelebrationPhotos, setUploadingCelebrationPhotos] = useState(false);
+  const [activeCelebrationPhoto, setActiveCelebrationPhoto] = useState(null);
+  const [showCelebrationPhoto, setShowCelebrationPhoto] = useState(false);
 
   useEffect(() => {
     const savedEmployeeCode = loadEmployeeCode();
@@ -452,6 +469,23 @@ export default function App() {
         workplaceName: savedAuth.user?.workplaceName || null,
         status: null,
       });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") {
+      return;
+    }
+
+    const savedSettings = loadCelebrationSettings();
+    setCelebrationEnabled(savedSettings.enabled);
+    setCelebrationPhotos(savedSettings.photos);
+    if (savedSettings.enabled && savedSettings.activePhotoId) {
+      const savedActivePhoto = savedSettings.photos.find((photo) => photo.id === savedSettings.activePhotoId);
+      if (savedActivePhoto) {
+        setActiveCelebrationPhoto(savedActivePhoto);
+        setShowCelebrationPhoto(true);
+      }
     }
   }, []);
 
@@ -581,6 +615,128 @@ export default function App() {
     const nextMessage = message || "알 수 없는 오류가 발생했습니다.";
     setErrorMessage(nextMessage);
     Alert.alert(title, nextMessage);
+  }
+
+  function confirmAction(title, message, onConfirm) {
+    if (Platform.OS === "web" && typeof window !== "undefined" && typeof window.confirm === "function") {
+      if (window.confirm(`${title}\n\n${message}`)) {
+        onConfirm();
+      }
+      return;
+    }
+
+    Alert.alert(title, message, [
+      { text: "취소", style: "cancel" },
+      {
+        text: "확인",
+        style: "destructive",
+        onPress: onConfirm,
+      },
+    ]);
+  }
+
+  function persistCelebrationSettings(nextSettings) {
+    saveCelebrationSettings(nextSettings);
+    setCelebrationEnabled(nextSettings.enabled);
+    setCelebrationPhotos(nextSettings.photos);
+  }
+
+  function showRandomCelebrationPhoto(photoCandidates = celebrationPhotos) {
+    if (!celebrationEnabled) {
+      return;
+    }
+
+    const nextPhoto = pickRandomCelebrationPhoto(photoCandidates);
+    if (!nextPhoto) {
+      return;
+    }
+
+    persistCelebrationSettings({
+      enabled: celebrationEnabled,
+      photos: photoCandidates,
+      activePhotoId: nextPhoto.id,
+    });
+    setActiveCelebrationPhoto(nextPhoto);
+    setShowCelebrationPhoto(true);
+  }
+
+  async function handleOpenImagePicker() {
+    if (Platform.OS !== "web" || typeof document === "undefined") {
+      Alert.alert("이미지 설정", "현재는 웹모바일에서 이미지 업로드를 지원합니다.");
+      return;
+    }
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.multiple = true;
+
+    input.onchange = async (event) => {
+      const files = Array.from(event.target?.files || []);
+      if (!files.length) {
+        return;
+      }
+
+      try {
+        setUploadingCelebrationPhotos(true);
+        const nextPhotos = await convertFilesToCelebrationPhotos(files);
+        const mergedPhotos = [...celebrationPhotos, ...nextPhotos].slice(-MAX_CELEBRATION_PHOTOS);
+        persistCelebrationSettings({
+          enabled: celebrationEnabled,
+          photos: mergedPhotos,
+          activePhotoId: activeCelebrationPhoto?.id || null,
+        });
+      } catch (error) {
+        showError("이미지 업로드 실패", error.message || "이미지를 불러오지 못했습니다.");
+      } finally {
+        setUploadingCelebrationPhotos(false);
+      }
+    };
+
+    input.click();
+  }
+
+  function handleToggleCelebrationEnabled(nextValue) {
+    persistCelebrationSettings({
+      enabled: nextValue,
+      photos: celebrationPhotos,
+      activePhotoId: nextValue ? activeCelebrationPhoto?.id || null : null,
+    });
+  }
+
+  function handleClearCelebrationPhotos() {
+    confirmAction("이미지 모두 삭제", "등록한 이미지를 모두 지울까요?", () => {
+      persistCelebrationSettings({
+        enabled: false,
+        photos: [],
+        activePhotoId: null,
+      });
+      setActiveCelebrationPhoto(null);
+      setShowCelebrationPhoto(false);
+    });
+  }
+
+  function handleRemoveCelebrationPhoto(photoId) {
+    const targetPhoto = celebrationPhotos.find((photo) => photo.id === photoId);
+    if (!targetPhoto) {
+      return;
+    }
+
+    confirmAction("이미지 삭제", "이 이미지를 삭제할까요?", () => {
+      const remainingPhotos = celebrationPhotos.filter((photo) => photo.id !== photoId);
+      const nextActivePhotoId =
+        activeCelebrationPhoto?.id === photoId ? null : activeCelebrationPhoto?.id || null;
+      persistCelebrationSettings({
+        enabled: remainingPhotos.length ? celebrationEnabled : false,
+        photos: remainingPhotos,
+        activePhotoId: nextActivePhotoId,
+      });
+
+      if (activeCelebrationPhoto?.id === photoId) {
+        setActiveCelebrationPhoto(null);
+        setShowCelebrationPhoto(false);
+      }
+    });
   }
 
   async function requestAndWatchLocation(onLocationChange) {
@@ -972,6 +1128,7 @@ export default function App() {
         ...prev,
         checkedInAt: response.checkedInAt || new Date().toISOString(),
       }));
+      showRandomCelebrationPhoto();
       Alert.alert("출근 완료", response.message || "정상적으로 출근 처리되었습니다.");
     } catch (error) {
       showError("출근 처리 실패", error.message || "잠시 후 다시 시도해 주세요.");
@@ -1190,6 +1347,124 @@ export default function App() {
           </View>
         </View>
       </Modal>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={showMenu}
+        onRequestClose={() => setShowMenu(false)}
+      >
+        <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
+          <View style={styles.menuCard}>
+            <Pressable
+              onPress={() => {
+                setShowMenu(false);
+                setShowImageSettings(true);
+              }}
+              style={styles.menuItem}
+            >
+              <Text style={styles.menuItemTitle}>이미지 설정</Text>
+              <Text style={styles.menuItemMeta}>
+                {celebrationEnabled ? `켜짐 · ${celebrationPhotos.length}장` : "꺼짐"}
+              </Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showImageSettings}
+        onRequestClose={() => setShowImageSettings(false)}
+      >
+        <View style={styles.sheetBackdrop}>
+          <View style={styles.sheetCard}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeaderRow}>
+              <View style={styles.sheetHeaderTextWrap}>
+                <Text style={styles.sheetTitle}>이미지 설정</Text>
+                <Text style={styles.sheetDescription}>
+                  출근 완료 후 지도 영역 대신 랜덤 이미지를 보여줄지 설정합니다.
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setShowImageSettings(false)}
+                style={styles.sheetCloseButton}
+              >
+                <Text style={styles.sheetCloseButtonText}>닫기</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingTitle}>이미지 표시</Text>
+                <Text style={styles.settingDescription}>
+                  켜두면 출근 완료 후 등록한 이미지 중 한 장이 랜덤으로 표시됩니다.
+                </Text>
+              </View>
+              <Switch
+                onValueChange={handleToggleCelebrationEnabled}
+                trackColor={{ false: "#cbd5e1", true: "#93c5fd" }}
+                thumbColor={celebrationEnabled ? "#1463ff" : "#ffffff"}
+                value={celebrationEnabled}
+              />
+            </View>
+
+            <View style={styles.settingSummaryRow}>
+              <Text style={styles.settingSummaryText}>
+                등록된 이미지 {celebrationPhotos.length}/{MAX_CELEBRATION_PHOTOS}
+              </Text>
+            </View>
+
+            <View style={styles.imageActionRow}>
+              <Pressable
+                disabled={uploadingCelebrationPhotos}
+                onPress={handleOpenImagePicker}
+                style={[styles.imageActionPrimaryButton, uploadingCelebrationPhotos && styles.buttonDisabled]}
+              >
+                {uploadingCelebrationPhotos ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.imageActionPrimaryButtonText}>이미지 추가</Text>
+                )}
+              </Pressable>
+              <Pressable
+                disabled={!celebrationPhotos.length}
+                onPress={handleClearCelebrationPhotos}
+                style={[styles.imageActionSecondaryButton, !celebrationPhotos.length && styles.buttonDisabled]}
+              >
+                <Text style={styles.imageActionSecondaryButtonText}>모두 삭제</Text>
+              </Pressable>
+            </View>
+
+            {celebrationPhotos.length ? (
+              <ScrollView
+                contentContainerStyle={styles.imagePreviewRow}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+              >
+                {celebrationPhotos.map((photo, index) => (
+                  <View key={photo.id} style={styles.imagePreviewCard}>
+                    <Image source={{ uri: photo.dataUrl }} style={styles.imagePreviewImage} />
+                    <Pressable
+                      onPress={() => handleRemoveCelebrationPhoto(photo.id)}
+                      style={styles.imagePreviewDeleteButton}
+                    >
+                      <Text style={styles.imagePreviewDeleteButtonText}>×</Text>
+                    </Pressable>
+                    <View style={styles.imagePreviewBadge}>
+                      <Text style={styles.imagePreviewBadgeText}>{index + 1}</Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={styles.imageEmptyText}>
+                아직 등록된 이미지가 없습니다. 원하는 사진을 올려두면 출근 완료 후 랜덤으로 보여드립니다.
+              </Text>
+            )}
+          </View>
+        </View>
+      </Modal>
       {errorMessage ? (
         <View style={styles.errorBanner}>
           <Text style={styles.errorBannerText}>{errorMessage}</Text>
@@ -1201,16 +1476,23 @@ export default function App() {
             {auth.user.name} <Text style={[styles.welcomeCode, themeStyles.welcomeCode]}>({auth.user.employeeCode})</Text>
           </Text>
         </View>
-        <View style={[styles.badge, themeStyles.badge]}>
-          <Text style={[styles.badgeText, themeStyles.badgeText]}>
-            {DEMO_MODE
-              ? distance == null
-                ? "DEMO"
-                : `DEMO ${Math.round(distance)}m`
-              : distance == null
-                ? "위치 확인 중"
-                : `${Math.round(distance)}m`}
-          </Text>
+        <View style={styles.headerActions}>
+          <View style={[styles.badge, themeStyles.badge]}>
+            <Text style={[styles.badgeText, themeStyles.badgeText]}>
+              {DEMO_MODE
+                ? distance == null
+                  ? "DEMO"
+                  : `DEMO ${Math.round(distance)}m`
+                : distance == null
+                  ? "위치 확인 중"
+                  : `${Math.round(distance)}m`}
+            </Text>
+          </View>
+          <Pressable onPress={() => setShowMenu(true)} style={styles.menuButton}>
+            <View style={styles.menuBar} />
+            <View style={styles.menuBar} />
+            <View style={styles.menuBar} />
+          </Pressable>
         </View>
       </View>
 
@@ -1226,7 +1508,26 @@ export default function App() {
       </View>
 
       <View style={[styles.mapCard, themeStyles.mapCard]}>
-        {loadingLocation ? (
+        {showCelebrationPhoto && activeCelebrationPhoto ? (
+          <View style={styles.celebrationPhotoWrap}>
+            <Image
+              resizeMode="cover"
+              source={{ uri: activeCelebrationPhoto.dataUrl }}
+              style={styles.celebrationPhoto}
+            />
+            <View style={styles.celebrationPhotoScrim} />
+            <Pressable
+              onPress={() => setShowCelebrationPhoto(false)}
+              style={styles.celebrationPhotoCloseButton}
+            >
+              <Text style={styles.celebrationPhotoCloseButtonText}>닫기</Text>
+            </Pressable>
+            <View style={styles.celebrationPhotoCaption}>
+              <Text style={styles.celebrationPhotoCaptionEyebrow}>오늘의 랜덤 이미지</Text>
+              <Text style={styles.celebrationPhotoCaptionTitle}>출근 완료를 축하해요</Text>
+            </View>
+          </View>
+        ) : loadingLocation ? (
           <View style={styles.centerState}>
             <ActivityIndicator size="large" color="#1463ff" />
             <Text style={[styles.helperText, themeStyles.helperText]}>현재 위치를 확인하고 있습니다.</Text>
@@ -1457,6 +1758,221 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 20,
   },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.08)",
+  },
+  menuCard: {
+    position: "absolute",
+    right: 16,
+    top: 78,
+    width: 184,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    padding: 8,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
+  menuItem: {
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: "#f8fafc",
+  },
+  menuItemTitle: {
+    color: "#172033",
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  menuItemMeta: {
+    color: "#64748b",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.42)",
+    justifyContent: "flex-end",
+  },
+  sheetCard: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 28,
+    maxHeight: "82%",
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    width: 54,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: "#d7deea",
+    marginBottom: 14,
+  },
+  sheetHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 18,
+  },
+  sheetHeaderTextWrap: {
+    flex: 1,
+  },
+  sheetTitle: {
+    color: "#172033",
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  sheetDescription: {
+    color: "#5b667a",
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  sheetCloseButton: {
+    backgroundColor: "#edf1f7",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  sheetCloseButtonText: {
+    color: "#334155",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  settingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 14,
+    backgroundColor: "#f8fafc",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  settingTextWrap: {
+    flex: 1,
+  },
+  settingTitle: {
+    color: "#172033",
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  settingDescription: {
+    color: "#64748b",
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  settingSummaryRow: {
+    marginBottom: 12,
+  },
+  settingSummaryText: {
+    color: "#64748b",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  imageActionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 14,
+  },
+  imageActionPrimaryButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 16,
+    backgroundColor: "#1463ff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imageActionPrimaryButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  imageActionSecondaryButton: {
+    minHeight: 48,
+    borderRadius: 16,
+    backgroundColor: "#edf1f7",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  imageActionSecondaryButtonText: {
+    color: "#455468",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  imagePreviewRow: {
+    gap: 10,
+    paddingBottom: 10,
+    paddingRight: 20,
+  },
+  imagePreviewCard: {
+    width: 96,
+    height: 96,
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "#dbe4f0",
+    position: "relative",
+  },
+  imagePreviewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  imagePreviewDeleteButton: {
+    position: "absolute",
+    left: 8,
+    top: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: "rgba(220,38,38,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#7f1d1d",
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  imagePreviewDeleteButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    lineHeight: 18,
+    fontWeight: "800",
+  },
+  imagePreviewBadge: {
+    position: "absolute",
+    right: 8,
+    top: 8,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 999,
+    backgroundColor: "rgba(15,23,42,0.78)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  imagePreviewBadgeText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  imageEmptyText: {
+    color: "#64748b",
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 8,
+  },
   header: {
     alignItems: "center",
     flexDirection: "row",
@@ -1486,6 +2002,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  menuButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  menuBar: {
+    width: 18,
+    height: 2,
+    borderRadius: 999,
+    backgroundColor: "#172033",
+    marginVertical: 1.5,
+  },
   mapCard: {
     flex: 1,
     marginHorizontal: 16,
@@ -1495,6 +2036,58 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  celebrationPhotoWrap: {
+    flex: 1,
+    position: "relative",
+  },
+  celebrationPhoto: {
+    width: "100%",
+    height: "100%",
+  },
+  celebrationPhotoScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15, 23, 42, 0.12)",
+  },
+  celebrationPhotoCloseButton: {
+    position: "absolute",
+    right: 14,
+    top: 14,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  celebrationPhotoCloseButtonText: {
+    color: "#172033",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  celebrationPhotoCaption: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 16,
+    backgroundColor: "rgba(15,23,42,0.58)",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  celebrationPhotoCaptionEyebrow: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  celebrationPhotoCaptionTitle: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "800",
   },
   centerState: {
     alignItems: "center",
