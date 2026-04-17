@@ -412,6 +412,7 @@ function createThemeStyles(palette) {
 
 export default function App() {
   const passwordInputRef = useRef(null);
+  const previousCheckedInAtRef = useRef(null);
   const { height: windowHeight } = useWindowDimensions();
   const [employeeCode, setEmployeeCode] = useState("");
   const [password, setPassword] = useState("");
@@ -645,12 +646,12 @@ export default function App() {
 
   function showRandomCelebrationPhoto(photoCandidates = celebrationPhotos) {
     if (!celebrationEnabled) {
-      return;
+      return null;
     }
 
     const nextPhoto = pickRandomCelebrationPhoto(photoCandidates);
     if (!nextPhoto) {
-      return;
+      return null;
     }
 
     persistCelebrationSettings({
@@ -660,6 +661,7 @@ export default function App() {
     });
     setActiveCelebrationPhoto(nextPhoto);
     setShowCelebrationPhoto(true);
+    return nextPhoto;
   }
 
   async function handleOpenImagePicker() {
@@ -979,6 +981,25 @@ export default function App() {
     effectiveAttendance.checkedInAt,
   ]);
 
+  useEffect(() => {
+    const previousCheckedInAt = previousCheckedInAtRef.current;
+
+    if (
+      !previousCheckedInAt &&
+      effectiveAttendance.checkedInAt &&
+      celebrationEnabled &&
+      celebrationPhotos.length
+    ) {
+      showRandomCelebrationPhoto(celebrationPhotos);
+    }
+
+    previousCheckedInAtRef.current = effectiveAttendance.checkedInAt || null;
+  }, [
+    celebrationEnabled,
+    celebrationPhotos,
+    effectiveAttendance.checkedInAt,
+  ]);
+
   const canCheckIn =
     Boolean(auth) &&
     !effectiveAttendance.checkedInAt &&
@@ -1188,7 +1209,16 @@ export default function App() {
         ...prev,
         checkedInAt: response.checkedInAt || new Date().toISOString(),
       }));
-      showRandomCelebrationPhoto();
+
+      if (celebrationEnabled && celebrationPhotos.length) {
+        const nextPhoto = showRandomCelebrationPhoto(celebrationPhotos);
+
+        if (nextPhoto) {
+          setActiveCelebrationPhoto(nextPhoto);
+          setShowCelebrationPhoto(true);
+        }
+      }
+
       Alert.alert("출근 완료", response.message || "정상적으로 출근 처리되었습니다.");
     } catch (error) {
       showError("출근 처리 실패", error.message || "잠시 후 다시 시도해 주세요.");
