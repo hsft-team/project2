@@ -415,7 +415,7 @@ function createThemeStyles(palette) {
 export default function App() {
   const passwordInputRef = useRef(null);
   const previousCheckedInAtRef = useRef(null);
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const [employeeCode, setEmployeeCode] = useState("");
   const [password, setPassword] = useState("");
   const [rememberEmployeeCode, setRememberEmployeeCode] = useState(false);
@@ -1025,6 +1025,13 @@ export default function App() {
     () => Math.max(38, Math.min(52, Math.round(windowHeight * 0.062))),
     [windowHeight]
   );
+  const isLandscapeLayout = windowWidth > windowHeight;
+  const bottomLayerResponsiveStyle = isLandscapeLayout
+    ? {
+        left: Math.max(16, windowWidth - 420),
+        right: 16,
+      }
+    : null;
 
   async function handleLogin() {
     try {
@@ -1691,15 +1698,6 @@ export default function App() {
           <View style={styles.topMenuBar} />
           <View style={styles.topMenuBar} />
         </Pressable>
-        <View style={styles.topWorkplacePill}>
-          <Text style={styles.topWorkplaceText}>{getDisplayLocationName(attendanceMeta, companySetting)}⌄</Text>
-        </View>
-        <View style={styles.topBellButton}>
-          <Text style={styles.topBellIcon}>♧</Text>
-          <View style={styles.topBellBadge}>
-            <Text style={styles.topBellBadgeText}>3</Text>
-          </View>
-        </View>
         <View style={styles.mapDistancePill}>
           <Text style={styles.mapDistanceIcon}>⌖</Text>
           <Text style={styles.mapDistanceText}>
@@ -1713,7 +1711,7 @@ export default function App() {
           </Text>
         </View>
 
-        <View style={styles.bottomLayerStack}>
+        <View style={[styles.bottomLayerStack, bottomLayerResponsiveStyle]}>
           <View style={[styles.mapFloatingControls, themeStyles.floatingCard]}>
             <View style={styles.floatingUserRow}>
               <View style={styles.userAvatar}>
@@ -1723,7 +1721,6 @@ export default function App() {
                 <Text style={[styles.welcomeText, themeStyles.headerText]}>
                   {auth.user.name} <Text style={[styles.welcomeCode, themeStyles.welcomeCode]}>({auth.user.employeeCode})</Text>
                 </Text>
-                <Text style={styles.userRoleText}>근태관리팀 · 사원</Text>
               </View>
             </View>
 
@@ -1776,13 +1773,7 @@ export default function App() {
             style={styles.noticeDetailButton}
           >
             <View style={styles.noticeDetailLeft}>
-              <Text style={styles.noticeSpeakerIcon}>♬</Text>
               <Text style={styles.noticeDetailTitle}>공지사항</Text>
-              {noticeBlocks.length > 0 ? (
-                <View style={styles.noticeCountBadge}>
-                  <Text style={styles.noticeCountText}>{noticeBlocks.length}</Text>
-                </View>
-              ) : null}
             </View>
             <View style={styles.noticeDetailRight}>
               <Text style={styles.noticeDetailArrow}>상세보기</Text>
@@ -2155,7 +2146,7 @@ const styles = StyleSheet.create({
   },
   topMenuButton: {
     position: "absolute",
-    left: 18,
+    right: 18,
     top: 18,
     zIndex: 8,
     width: 42,
@@ -2177,69 +2168,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#172033",
     marginVertical: 2,
   },
-  topWorkplacePill: {
-    position: "absolute",
-    top: 22,
-    alignSelf: "center",
-    zIndex: 8,
-    backgroundColor: "rgba(255,255,255,0.92)",
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
-  },
-  topWorkplaceText: {
-    color: "#172033",
-    fontSize: 14,
-    fontWeight: "900",
-  },
-  topBellButton: {
-    position: "absolute",
-    right: 18,
-    top: 18,
-    zIndex: 8,
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.72)",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 8,
-  },
-  topBellIcon: {
-    color: "#172033",
-    fontSize: 20,
-    fontWeight: "900",
-  },
-  topBellBadge: {
-    position: "absolute",
-    right: 4,
-    top: 3,
-    minWidth: 15,
-    height: 15,
-    borderRadius: 999,
-    backgroundColor: "#ef4444",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 3,
-  },
-  topBellBadgeText: {
-    color: "#ffffff",
-    fontSize: 9,
-    fontWeight: "900",
-  },
   mapDistancePill: {
     position: "absolute",
     left: 22,
-    bottom: 330,
+    top: 82,
     zIndex: 5,
     flexDirection: "row",
     alignItems: "center",
@@ -2518,12 +2450,6 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: "900",
   },
-  userRoleText: {
-    color: "#64748b",
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: 3,
-  },
   noticeDetailButton: {
     alignItems: "center",
     backgroundColor: "#ffffff",
@@ -2545,29 +2471,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 9,
   },
-  noticeSpeakerIcon: {
-    color: "#1463ff",
-    fontSize: 17,
-    fontWeight: "900",
-  },
   noticeDetailTitle: {
     color: "#172033",
     fontSize: 16,
     fontWeight: "800",
-  },
-  noticeCountBadge: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 999,
-    backgroundColor: "#ef4444",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 5,
-  },
-  noticeCountText: {
-    color: "#ffffff",
-    fontSize: 10,
-    fontWeight: "900",
   },
   noticeDetailRight: {
     flexDirection: "row",
