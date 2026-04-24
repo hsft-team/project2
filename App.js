@@ -2166,8 +2166,6 @@ const styles = StyleSheet.create({
   },
   mapFirstShell: {
     flex: 1,
-    marginHorizontal: 12,
-    marginVertical: 10,
     position: "relative",
   },
   floatingHeaderCard: {
@@ -2256,7 +2254,6 @@ const styles = StyleSheet.create({
   mapCard: {
     flex: 1,
     overflow: "hidden",
-    borderRadius: 34,
     backgroundColor: "#dfe7f4",
   },
   map: {
