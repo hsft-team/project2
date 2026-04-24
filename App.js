@@ -458,6 +458,7 @@ export default function App() {
   const [uploadingCelebrationPhotos, setUploadingCelebrationPhotos] = useState(false);
   const [activeCelebrationPhoto, setActiveCelebrationPhoto] = useState(null);
   const [showCelebrationPhoto, setShowCelebrationPhoto] = useState(false);
+  const [bottomLayerHeight, setBottomLayerHeight] = useState(0);
 
   useEffect(() => {
     const savedEmployeeCode = loadEmployeeCode();
@@ -1034,7 +1035,7 @@ export default function App() {
     : null;
   const mapDistanceResponsiveStyle = isLandscapeLayout
     ? { top: 82 }
-    : { bottom: 352 };
+    : { bottom: bottomLayerHeight ? bottomLayerHeight + 26 : 352 };
 
   async function handleLogin() {
     try {
@@ -1714,7 +1715,10 @@ export default function App() {
           </Text>
         </View>
 
-        <View style={[styles.bottomLayerStack, bottomLayerResponsiveStyle]}>
+        <View
+          style={[styles.bottomLayerStack, bottomLayerResponsiveStyle]}
+          onLayout={(event) => setBottomLayerHeight(event.nativeEvent.layout.height)}
+        >
           <View style={[styles.mapFloatingControls, themeStyles.floatingCard]}>
             <View style={styles.floatingUserRow}>
               <View style={styles.userAvatar}>
