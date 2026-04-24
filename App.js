@@ -1622,73 +1622,77 @@ export default function App() {
         </View>
       ) : null}
       <View style={styles.mapFirstShell}>
-        <View style={styles.mapHeroStack}>
-          <View style={[styles.mapCard, themeStyles.mapCard]}>
-            {showCelebrationPhoto && activeCelebrationPhoto ? (
-              <Pressable
-                onPress={() => setShowCelebrationPhoto(false)}
-                style={styles.celebrationPhotoWrap}
-              >
-                <Image
-                  source={{ uri: activeCelebrationPhoto.dataUrl }}
-                  style={styles.celebrationPhotoBackground}
-                />
-                <View style={styles.celebrationPhotoBackdrop} />
-                <View style={styles.celebrationPhotoInner}>
-                  <Image
-                    resizeMode="cover"
-                    source={{ uri: activeCelebrationPhoto.dataUrl }}
-                    style={styles.celebrationPhoto}
-                  />
-                </View>
-                <View style={styles.celebrationPhotoScrim} />
-                <View style={styles.celebrationPhotoCaption}>
-                  <Text style={styles.celebrationPhotoCaptionEyebrow}>오늘의 랜덤 이미지</Text>
-                  <Text style={styles.celebrationPhotoCaptionTitle}>출근 완료를 축하해요</Text>
-                  <Text style={styles.celebrationPhotoCaptionHint}>이미지를 터치하면 지도로 돌아갑니다.</Text>
-                </View>
-              </Pressable>
-            ) : loadingLocation ? (
-              <View style={styles.centerState}>
-                <ActivityIndicator size="large" color="#1463ff" />
-                <Text style={[styles.helperText, themeStyles.helperText]}>현재 위치를 확인하고 있습니다.</Text>
-              </View>
-            ) : locationPermission !== "granted" ? (
-              <View style={styles.centerState}>
-                <Text style={[styles.helperTitle, themeStyles.helperTitle]}>위치 권한이 필요합니다.</Text>
-                <Text style={[styles.helperText, themeStyles.helperText]}>
-                  {Platform.OS === "web"
-                    ? webLocationHelpText
-                    : "권한을 허용하면 사업장 반경 안에서만 출근 버튼이 활성화됩니다."}
-                </Text>
-                <Pressable
-                  onPress={handleRetryLocationPermission}
-                  style={[styles.permissionButton, themeStyles.permissionButton]}
-                >
-                  <Text style={styles.permissionButtonText}>위치 권한 다시 요청</Text>
-                </Pressable>
-                {Platform.OS === "web" ? (
-                  <Text style={styles.permissionHint}>
-                    iPhone Safari에서는 주소창 왼쪽의 aA 메뉴에서 위치 권한을 다시 허용할 수 있습니다.
-                  </Text>
-                ) : null}
-              </View>
-            ) : (
-              <AttendanceMap
-                companyLocation={{
-                  latitude: companySetting.latitude,
-                  longitude: companySetting.longitude,
-                  latitudeDelta: COMPANY_LOCATION.latitudeDelta,
-                  longitudeDelta: COMPANY_LOCATION.longitudeDelta,
-                }}
-                companyName={getDisplayLocationName(attendanceMeta, companySetting)}
-                companyRadiusMeters={companySetting.allowedRadiusMeters}
-                currentLocation={currentLocation}
-                style={styles.map}
+        {showCelebrationPhoto && activeCelebrationPhoto ? (
+          <Pressable
+            onPress={() => setShowCelebrationPhoto(false)}
+            style={styles.celebrationPhotoWrap}
+          >
+            <Image
+              source={{ uri: activeCelebrationPhoto.dataUrl }}
+              style={styles.celebrationPhotoBackground}
+            />
+            <View style={styles.celebrationPhotoBackdrop} />
+            <View style={styles.celebrationPhotoInner}>
+              <Image
+                resizeMode="cover"
+                source={{ uri: activeCelebrationPhoto.dataUrl }}
+                style={styles.celebrationPhoto}
               />
-            )}
+            </View>
+            <View style={styles.celebrationPhotoScrim} />
+            <View style={styles.celebrationPhotoCaption}>
+              <Text style={styles.celebrationPhotoCaptionEyebrow}>오늘의 랜덤 이미지</Text>
+              <Text style={styles.celebrationPhotoCaptionTitle}>출근 완료를 축하해요</Text>
+              <Text style={styles.celebrationPhotoCaptionHint}>이미지를 터치하면 지도로 돌아갑니다.</Text>
+            </View>
+          </Pressable>
+        ) : loadingLocation ? (
+          <View style={styles.centerState}>
+            <ActivityIndicator size="large" color="#1463ff" />
+            <Text style={[styles.helperText, themeStyles.helperText]}>현재 위치를 확인하고 있습니다.</Text>
           </View>
+        ) : locationPermission !== "granted" ? (
+          <View style={styles.centerState}>
+            <Text style={[styles.helperTitle, themeStyles.helperTitle]}>위치 권한이 필요합니다.</Text>
+            <Text style={[styles.helperText, themeStyles.helperText]}>
+              {Platform.OS === "web"
+                ? webLocationHelpText
+                : "권한을 허용하면 사업장 반경 안에서만 출근 버튼이 활성화됩니다."}
+            </Text>
+            <Pressable
+              onPress={handleRetryLocationPermission}
+              style={[styles.permissionButton, themeStyles.permissionButton]}
+            >
+              <Text style={styles.permissionButtonText}>위치 권한 다시 요청</Text>
+            </Pressable>
+            {Platform.OS === "web" ? (
+              <Text style={styles.permissionHint}>
+                iPhone Safari에서는 주소창 왼쪽의 aA 메뉴에서 위치 권한을 다시 허용할 수 있습니다.
+              </Text>
+            ) : null}
+          </View>
+        ) : (
+          <AttendanceMap
+            companyLocation={{
+              latitude: companySetting.latitude,
+              longitude: companySetting.longitude,
+              latitudeDelta: COMPANY_LOCATION.latitudeDelta,
+              longitudeDelta: COMPANY_LOCATION.longitudeDelta,
+            }}
+            companyName={getDisplayLocationName(attendanceMeta, companySetting)}
+            companyRadiusMeters={companySetting.allowedRadiusMeters}
+            currentLocation={currentLocation}
+            style={styles.map}
+          />
+        )}
 
+        <Pressable onPress={() => setShowMenu(true)} style={styles.topMenuButton}>
+          <View style={styles.topMenuBar} />
+          <View style={styles.topMenuBar} />
+          <View style={styles.topMenuBar} />
+        </Pressable>
+
+        <View style={styles.bottomLayerStack}>
           <View style={[styles.mapFloatingControls, themeStyles.floatingCard]}>
             <View style={styles.floatingUserRow}>
               <View style={styles.headerTextWrap}>
@@ -1753,20 +1757,20 @@ export default function App() {
                 )}
               </Pressable>
             </View>
-
-            <Pressable
-              onPress={() => setShowNoticeModal(true)}
-              style={styles.noticeDetailButton}
-            >
-              <View>
-                <Text style={styles.noticeDetailEyebrow}>공지사항</Text>
-                <Text style={styles.noticeDetailTitle}>
-                  {noticeBlocks.length > 0 ? "오늘 공지 상세보기" : "등록된 공지사항이 없습니다"}
-                </Text>
-              </View>
-              <Text style={styles.noticeDetailArrow}>보기</Text>
-            </Pressable>
           </View>
+
+          <Pressable
+            onPress={() => setShowNoticeModal(true)}
+            style={styles.noticeDetailButton}
+          >
+            <View>
+              <Text style={styles.noticeDetailEyebrow}>공지사항</Text>
+              <Text style={styles.noticeDetailTitle}>
+                {noticeBlocks.length > 0 ? "오늘 공지 상세보기" : "등록된 공지사항이 없습니다"}
+              </Text>
+            </View>
+            <Text style={styles.noticeDetailArrow}>상세보기</Text>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
@@ -2116,7 +2120,7 @@ const styles = StyleSheet.create({
   mapFirstShell: {
     flex: 1,
     backgroundColor: "#eef3fb",
-    padding: 14,
+    position: "relative",
   },
   minimalHeader: {
     alignItems: "center",
@@ -2130,6 +2134,30 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 360,
     position: "relative",
+  },
+  topMenuButton: {
+    position: "absolute",
+    right: 18,
+    top: 18,
+    zIndex: 8,
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  topMenuBar: {
+    width: 20,
+    height: 2,
+    borderRadius: 999,
+    backgroundColor: "#172033",
+    marginVertical: 2,
   },
   floatingHeaderCard: {
     position: "absolute",
@@ -2217,7 +2245,6 @@ const styles = StyleSheet.create({
   mapCard: {
     flex: 1,
     overflow: "hidden",
-    borderRadius: 34,
     backgroundColor: "#dfe7f4",
   },
   map: {
@@ -2345,11 +2372,6 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   mapFloatingControls: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 16,
-    zIndex: 5,
     backgroundColor: "rgba(255,255,255,0.97)",
     borderColor: "#e4ebf5",
     borderRadius: 28,
@@ -2362,6 +2384,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 14 },
     elevation: 10,
   },
+  bottomLayerStack: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 16,
+    zIndex: 5,
+    gap: 10,
+  },
   floatingUserRow: {
     alignItems: "center",
     flexDirection: "row",
@@ -2371,15 +2401,19 @@ const styles = StyleSheet.create({
   },
   noticeDetailButton: {
     alignItems: "center",
-    backgroundColor: "#f8fafc",
-    borderColor: "#e2e8f0",
-    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.97)",
+    borderColor: "#e4ebf5",
+    borderRadius: 24,
     borderWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
   },
   noticeDetailEyebrow: {
     color: "#64748b",
