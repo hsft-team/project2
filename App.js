@@ -1034,7 +1034,7 @@ export default function App() {
     : null;
   const mapDistanceResponsiveStyle = isLandscapeLayout
     ? { top: 82 }
-    : { bottom: 326 };
+    : { bottom: 352 };
 
   async function handleLogin() {
     try {
