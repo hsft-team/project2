@@ -57,17 +57,6 @@ function MapViewport({ companyLocation, currentLocation }) {
   return null;
 }
 
-function offsetCoordinate({ latitude, longitude }, northMeters, eastMeters) {
-  const latitudeOffset = northMeters / 111320;
-  const longitudeOffset =
-    eastMeters / (111320 * Math.cos((latitude * Math.PI) / 180));
-
-  return {
-    latitude: latitude + latitudeOffset,
-    longitude: longitude + longitudeOffset,
-  };
-}
-
 export default function AttendanceMap({
   companyLocation,
   companyName,
@@ -78,13 +67,6 @@ export default function AttendanceMap({
   const distanceToCompany = currentLocation
     ? getDistanceInMeters(currentLocation, companyLocation)
     : null;
-  const shouldUseCompactCurrentLocation =
-    currentLocation &&
-    distanceToCompany < 90;
-  const displayedCurrentLocation =
-    currentLocation && shouldUseCompactCurrentLocation
-      ? offsetCoordinate(currentLocation, 32, 48)
-      : currentLocation;
   const isInsideCompanyRadius =
     distanceToCompany == null || distanceToCompany <= companyRadiusMeters;
   const circleColor = isInsideCompanyRadius
@@ -126,10 +108,10 @@ export default function AttendanceMap({
           </Marker>
         </Pane>
         {currentLocation ? (
-          <Pane name="current-location-pane" style={{ zIndex: 650 }}>
+          <Pane name="current-location-pane" style={{ zIndex: 700 }}>
             <Marker
               icon={currentLocationIcon}
-              position={[displayedCurrentLocation.latitude, displayedCurrentLocation.longitude]}
+              position={[currentLocation.latitude, currentLocation.longitude]}
             >
               <Popup>현재 위치</Popup>
             </Marker>
