@@ -1691,33 +1691,39 @@ export default function App() {
           <View style={styles.topMenuBar} />
           <View style={styles.topMenuBar} />
         </Pressable>
+        <View style={styles.topWorkplacePill}>
+          <Text style={styles.topWorkplaceText}>{getDisplayLocationName(attendanceMeta, companySetting)}⌄</Text>
+        </View>
+        <View style={styles.topBellButton}>
+          <Text style={styles.topBellIcon}>♧</Text>
+          <View style={styles.topBellBadge}>
+            <Text style={styles.topBellBadgeText}>3</Text>
+          </View>
+        </View>
+        <View style={styles.mapDistancePill}>
+          <Text style={styles.mapDistanceIcon}>⌖</Text>
+          <Text style={styles.mapDistanceText}>
+            {DEMO_MODE
+              ? distance == null
+                ? "DEMO"
+                : `현재 거리 ${Math.round(distance)}m`
+              : distance == null
+                ? "위치 확인 중"
+                : `현재 거리 ${Math.round(distance)}m`}
+          </Text>
+        </View>
 
         <View style={styles.bottomLayerStack}>
           <View style={[styles.mapFloatingControls, themeStyles.floatingCard]}>
             <View style={styles.floatingUserRow}>
+              <View style={styles.userAvatar}>
+                <Text style={styles.userAvatarText}>{auth.user.name?.slice(0, 1) || "사"}</Text>
+              </View>
               <View style={styles.headerTextWrap}>
-                <Text style={[styles.workplaceTitle, themeStyles.workplaceTitle]}>
-                  {getDisplayLocationName(attendanceMeta, companySetting)}
-                </Text>
                 <Text style={[styles.welcomeText, themeStyles.headerText]}>
                   {auth.user.name} <Text style={[styles.welcomeCode, themeStyles.welcomeCode]}>({auth.user.employeeCode})</Text>
                 </Text>
-              </View>
-              <View style={styles.headerActions}>
-                <View style={[styles.badge, themeStyles.badge]}>
-                  <Text style={[styles.badgeText, themeStyles.badgeText]}>
-                    {DEMO_MODE
-                      ? distance == null
-                        ? "DEMO"
-                        : `DEMO ${Math.round(distance)}m`
-                      : distance == null
-                        ? "확인 중"
-                        : `${Math.round(distance)}m`}
-                  </Text>
-                </View>
-                <Pressable onPress={() => setShowMenu(true)} style={styles.menuButton}>
-                  <Text style={styles.menuButtonText}>메뉴</Text>
-                </Pressable>
+                <Text style={styles.userRoleText}>근태관리팀 · 사원</Text>
               </View>
             </View>
 
@@ -1736,24 +1742,30 @@ export default function App() {
               <Pressable
                 disabled={!canCheckIn}
                 onPress={handleCheckIn}
-                style={[styles.checkInButton, styles.actionButton, themeStyles.checkInButton, !canCheckIn && styles.buttonDisabled]}
+                style={[styles.checkInButton, styles.actionButton, !canCheckIn && styles.buttonDisabled]}
               >
                 {submittingAttendance && !attendance.checkedInAt ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text style={styles.checkInButtonText}>출근하기</Text>
+                  <>
+                    <Text style={styles.actionButtonIcon}>➜</Text>
+                    <Text style={styles.checkInButtonText}>출근하기</Text>
+                  </>
                 )}
               </Pressable>
 
               <Pressable
                 disabled={!canCheckOut}
                 onPress={handleCheckOut}
-                style={[styles.secondaryButton, styles.actionButton, themeStyles.secondaryButton, !canCheckOut && styles.buttonDisabled]}
+                style={[styles.secondaryButton, styles.actionButton, !canCheckOut && styles.buttonDisabled]}
               >
                 {submittingAttendance && attendance.checkedInAt && !attendance.checkedOutAt ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text style={styles.secondaryButtonText}>퇴근하기</Text>
+                  <>
+                    <Text style={styles.actionButtonIcon}>↪</Text>
+                    <Text style={styles.secondaryButtonText}>퇴근하기</Text>
+                  </>
                 )}
               </Pressable>
             </View>
@@ -1763,13 +1775,19 @@ export default function App() {
             onPress={() => setShowNoticeModal(true)}
             style={styles.noticeDetailButton}
           >
-            <View>
-              <Text style={styles.noticeDetailEyebrow}>공지사항</Text>
-              <Text style={styles.noticeDetailTitle}>
-                {noticeBlocks.length > 0 ? "오늘 공지 상세보기" : "등록된 공지사항이 없습니다"}
-              </Text>
+            <View style={styles.noticeDetailLeft}>
+              <Text style={styles.noticeSpeakerIcon}>♬</Text>
+              <Text style={styles.noticeDetailTitle}>공지사항</Text>
+              {noticeBlocks.length > 0 ? (
+                <View style={styles.noticeCountBadge}>
+                  <Text style={styles.noticeCountText}>{noticeBlocks.length}</Text>
+                </View>
+              ) : null}
             </View>
-            <Text style={styles.noticeDetailArrow}>상세보기</Text>
+            <View style={styles.noticeDetailRight}>
+              <Text style={styles.noticeDetailArrow}>상세보기</Text>
+              <Text style={styles.noticeChevron}>›</Text>
+            </View>
           </Pressable>
         </View>
       </View>
@@ -2137,27 +2155,114 @@ const styles = StyleSheet.create({
   },
   topMenuButton: {
     position: "absolute",
-    right: 18,
+    left: 18,
     top: 18,
     zIndex: 8,
-    width: 48,
-    height: 48,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.96)",
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.72)",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#0f172a",
-    shadowOpacity: 0.14,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
     elevation: 8,
   },
   topMenuBar: {
-    width: 20,
+    width: 18,
     height: 2,
     borderRadius: 999,
     backgroundColor: "#172033",
     marginVertical: 2,
+  },
+  topWorkplacePill: {
+    position: "absolute",
+    top: 22,
+    alignSelf: "center",
+    zIndex: 8,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  topWorkplaceText: {
+    color: "#172033",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  topBellButton: {
+    position: "absolute",
+    right: 18,
+    top: 18,
+    zIndex: 8,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 8,
+  },
+  topBellIcon: {
+    color: "#172033",
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  topBellBadge: {
+    position: "absolute",
+    right: 4,
+    top: 3,
+    minWidth: 15,
+    height: 15,
+    borderRadius: 999,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  topBellBadgeText: {
+    color: "#ffffff",
+    fontSize: 9,
+    fontWeight: "900",
+  },
+  mapDistancePill: {
+    position: "absolute",
+    left: 22,
+    bottom: 330,
+    zIndex: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "rgba(255,255,255,0.88)",
+    borderRadius: 18,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.09,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  mapDistanceIcon: {
+    color: "#0f9d94",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  mapDistanceText: {
+    color: "#172033",
+    fontSize: 13,
+    fontWeight: "800",
   },
   floatingHeaderCard: {
     position: "absolute",
@@ -2193,12 +2298,12 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     color: "#172033",
-    fontSize: 22,
+    fontSize: 17,
     fontWeight: "800",
   },
   welcomeCode: {
     color: "#52607a",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
   },
   badge: {
@@ -2372,16 +2477,17 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   mapFloatingControls: {
-    backgroundColor: "rgba(255,255,255,0.97)",
-    borderColor: "#e4ebf5",
-    borderRadius: 28,
+    backgroundColor: "#ffffff",
+    borderColor: "rgba(226,232,240,0.96)",
+    borderRadius: 26,
     borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
     shadowColor: "#0f172a",
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.20,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 16 },
     elevation: 10,
   },
   bottomLayerStack: {
@@ -2396,40 +2502,87 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 12,
-    marginBottom: 12,
+    gap: 10,
+    marginBottom: 14,
+  },
+  userAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: "#67d5ca",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  userAvatarText: {
+    color: "#ffffff",
+    fontSize: 19,
+    fontWeight: "900",
+  },
+  userRoleText: {
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 3,
   },
   noticeDetailButton: {
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.97)",
-    borderColor: "#e4ebf5",
-    borderRadius: 24,
+    backgroundColor: "#ffffff",
+    borderColor: "rgba(226,232,240,0.95)",
+    borderRadius: 22,
     borderWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 13,
     shadowColor: "#0f172a",
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.14,
     shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 9 },
     elevation: 8,
   },
-  noticeDetailEyebrow: {
-    color: "#64748b",
-    fontSize: 12,
-    fontWeight: "800",
-    marginBottom: 3,
+  noticeDetailLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+  },
+  noticeSpeakerIcon: {
+    color: "#1463ff",
+    fontSize: 17,
+    fontWeight: "900",
   },
   noticeDetailTitle: {
     color: "#172033",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "800",
   },
-  noticeDetailArrow: {
-    color: "#1463ff",
-    fontSize: 14,
+  noticeCountBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 999,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  noticeCountText: {
+    color: "#ffffff",
+    fontSize: 10,
     fontWeight: "900",
+  },
+  noticeDetailRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  noticeDetailArrow: {
+    color: "#64748b",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  noticeChevron: {
+    color: "#94a3b8",
+    fontSize: 24,
+    fontWeight: "700",
   },
   noticePanelCard: {
     backgroundColor: "#ffffff",
@@ -2465,17 +2618,17 @@ const styles = StyleSheet.create({
   },
   attendanceSummaryRow: {
     flexDirection: "row",
-    gap: 10,
-    marginBottom: 12,
+    gap: 0,
+    marginBottom: 14,
   },
   attendanceSummaryCard: {
     flex: 1,
-    backgroundColor: "#f4f7fb",
-    borderRadius: 14,
+    backgroundColor: "#ffffff",
+    borderRadius: 0,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "#dbe4f0",
+    borderWidth: 0,
+    alignItems: "center",
   },
   attendanceSummaryLabel: {
     color: "#6a7487",
@@ -2485,7 +2638,7 @@ const styles = StyleSheet.create({
   },
   attendanceSummaryValue: {
     color: "#172033",
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: "800",
     letterSpacing: -0.2,
   },
@@ -2611,33 +2764,50 @@ const styles = StyleSheet.create({
   },
   checkInButton: {
     alignItems: "center",
-    backgroundColor: "#1463ff",
-    borderRadius: 22,
+    backgroundColor: "#49b85a",
+    borderRadius: 999,
     justifyContent: "center",
-    minHeight: 62,
+    minHeight: 86,
+    shadowColor: "#15803d",
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 7,
   },
   checkInButtonText: {
     color: "#ffffff",
-    fontSize: 20,
-    fontWeight: "800",
+    fontSize: 17,
+    fontWeight: "900",
+    marginTop: 2,
   },
   secondaryButton: {
     alignItems: "center",
-    backgroundColor: "#172033",
-    borderRadius: 18,
+    backgroundColor: "#ff762b",
+    borderRadius: 999,
     justifyContent: "center",
-    minHeight: 62,
+    minHeight: 86,
+    shadowColor: "#c2410c",
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 7,
   },
   secondaryButtonText: {
     color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+  actionButtonIcon: {
+    color: "#ffffff",
+    fontSize: 28,
+    fontWeight: "900",
   },
   actionRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: 18,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 8,
   },
   actionButton: {
     flex: 1,
