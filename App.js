@@ -1763,7 +1763,7 @@ export default function App() {
                   <ActivityIndicator color="#ffffff" />
                 ) : (
                   <>
-                    <Text style={styles.actionButtonIcon}>↪</Text>
+                    <Text style={styles.actionButtonIcon}>➜</Text>
                     <Text style={styles.secondaryButtonText}>퇴근하기</Text>
                   </>
                 )}
