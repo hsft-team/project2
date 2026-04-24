@@ -1747,10 +1747,7 @@ export default function App() {
                 {submittingAttendance && !attendance.checkedInAt ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <>
-                    <Text style={styles.actionButtonIcon}>➜</Text>
-                    <Text style={styles.checkInButtonText}>출근하기</Text>
-                  </>
+                  <Text style={styles.checkInButtonText}>출근하기</Text>
                 )}
               </Pressable>
 
@@ -1762,10 +1759,7 @@ export default function App() {
                 {submittingAttendance && attendance.checkedInAt && !attendance.checkedOutAt ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <>
-                    <Text style={styles.actionButtonIcon}>➜</Text>
-                    <Text style={styles.secondaryButtonText}>퇴근하기</Text>
-                  </>
+                  <Text style={styles.secondaryButtonText}>퇴근하기</Text>
                 )}
               </Pressable>
             </View>
@@ -2682,7 +2676,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#49b85a",
     borderRadius: 999,
     justifyContent: "center",
-    minHeight: 86,
+    minHeight: 58,
     shadowColor: "#15803d",
     shadowOpacity: 0.18,
     shadowRadius: 16,
@@ -2693,14 +2687,13 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 17,
     fontWeight: "900",
-    marginTop: 2,
   },
   secondaryButton: {
     alignItems: "center",
     backgroundColor: "#ff762b",
     borderRadius: 999,
     justifyContent: "center",
-    minHeight: 86,
+    minHeight: 58,
     shadowColor: "#c2410c",
     shadowOpacity: 0.18,
     shadowRadius: 16,
@@ -2710,12 +2703,6 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: "#ffffff",
     fontSize: 17,
-    fontWeight: "900",
-    marginTop: 2,
-  },
-  actionButtonIcon: {
-    color: "#ffffff",
-    fontSize: 28,
     fontWeight: "900",
   },
   actionRow: {
