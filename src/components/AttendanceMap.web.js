@@ -33,9 +33,9 @@ const currentLocationIcon = new L.DivIcon({
   className: "current-location-marker",
   html: `
     <div style="position:relative;width:34px;height:34px;">
-      <div style="position:absolute;inset:0;border-radius:999px;background:#1463ff;box-shadow:0 10px 18px rgba(20,99,255,.28);"></div>
-      <div style="position:absolute;left:12px;top:8px;width:10px;height:10px;border-radius:999px;background:#f8fafc;"></div>
-      <div style="position:absolute;left:9px;top:18px;width:16px;height:9px;border-radius:9px 9px 6px 6px;background:#f8fafc;"></div>
+      <div style="position:absolute;left:2px;top:2px;width:30px;height:30px;border-radius:999px;background:rgba(20,99,255,.18);box-shadow:0 10px 18px rgba(20,99,255,.24);"></div>
+      <div style="position:absolute;left:7px;top:7px;width:20px;height:20px;border-radius:999px;background:rgba(20,99,255,.30);"></div>
+      <div style="position:absolute;left:11px;top:11px;width:12px;height:12px;border-radius:999px;background:#1463ff;border:4px solid #ffffff;box-sizing:border-box;"></div>
     </div>
   `,
   iconSize: [34, 34],
