@@ -383,6 +383,8 @@ function createThemeStyles(palette) {
     welcomeCode: { color: palette.muted },
     badge: { backgroundColor: palette.accent },
     badgeText: { color: palette.accentText },
+    floatingCard: { backgroundColor: palette.surface, borderColor: palette.border },
+    workplaceTitle: { color: palette.primary },
     mapCard: { backgroundColor: palette.mapCard },
     helperTitle: { color: palette.text },
     helperText: { color: palette.muted },
@@ -1014,16 +1016,11 @@ export default function App() {
     () => parseNoticeMessage(companySetting.noticeMessage),
     [companySetting.noticeMessage]
   );
-  const hasLongNotice = noticeBlocks.length > 3;
   const skinPalette = useMemo(
     () => getSkinPalette(companySetting.mobileSkinKey),
     [companySetting.mobileSkinKey]
   );
   const themeStyles = useMemo(() => createThemeStyles(skinPalette), [skinPalette]);
-  const mapCardHeight = useMemo(
-    () => Math.max(280, Math.min(460, Math.round(windowHeight * 0.46))),
-    [windowHeight]
-  );
   const collapsedNoticeHeight = useMemo(
     () => Math.max(38, Math.min(52, Math.round(windowHeight * 0.062))),
     [windowHeight]
@@ -1624,204 +1621,203 @@ export default function App() {
           <Text style={styles.errorBannerText}>{errorMessage}</Text>
         </View>
       ) : null}
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.welcomeText, themeStyles.headerText]}>
-            {auth.user.name} <Text style={[styles.welcomeCode, themeStyles.welcomeCode]}>({auth.user.employeeCode})</Text>
-          </Text>
-        </View>
-        <View style={styles.headerActions}>
-          <View style={[styles.badge, themeStyles.badge]}>
-            <Text style={[styles.badgeText, themeStyles.badgeText]}>
-              {DEMO_MODE
-                ? distance == null
-                  ? "DEMO"
-                  : `DEMO ${Math.round(distance)}m`
-                : distance == null
-                  ? "위치 확인 중"
-                  : `${Math.round(distance)}m`}
-            </Text>
-          </View>
-          <Pressable onPress={() => setShowMenu(true)} style={styles.menuButton}>
-            <View style={styles.menuBar} />
-            <View style={styles.menuBar} />
-            <View style={styles.menuBar} />
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.attendanceSummaryRow}>
-        <View style={[styles.attendanceSummaryCard, themeStyles.attendanceSummaryCard]}>
-          <Text style={[styles.attendanceSummaryLabel, themeStyles.attendanceSummaryLabel]}>출근</Text>
-          <Text style={[styles.attendanceSummaryValue, themeStyles.attendanceSummaryValue]}>{formatTime(attendance.checkedInAt)}</Text>
-        </View>
-        <View style={[styles.attendanceSummaryCard, themeStyles.attendanceSummaryCard]}>
-          <Text style={[styles.attendanceSummaryLabel, themeStyles.attendanceSummaryLabel]}>퇴근</Text>
-          <Text style={[styles.attendanceSummaryValue, themeStyles.attendanceSummaryValue]}>{formatTime(attendance.checkedOutAt)}</Text>
-        </View>
-      </View>
-
-      <View style={[styles.mapCard, themeStyles.mapCard, { minHeight: mapCardHeight }]}>
-        {showCelebrationPhoto && activeCelebrationPhoto ? (
-          <View style={styles.celebrationPhotoWrap}>
-            <Image
-              resizeMode="cover"
-              source={{ uri: activeCelebrationPhoto.dataUrl }}
-              style={styles.celebrationPhotoBackground}
-            />
-            <View style={styles.celebrationPhotoBackdrop} />
-            <View style={styles.celebrationPhotoInner}>
-              <Image
-                resizeMode="contain"
-                source={{ uri: activeCelebrationPhoto.dataUrl }}
-                style={styles.celebrationPhoto}
-              />
-            </View>
-            <View style={styles.celebrationPhotoScrim} />
+      <View style={styles.mapFirstShell}>
+        <View style={[styles.mapCard, themeStyles.mapCard]}>
+          {showCelebrationPhoto && activeCelebrationPhoto ? (
             <Pressable
               onPress={() => setShowCelebrationPhoto(false)}
-              style={styles.celebrationPhotoCloseButton}
+              style={styles.celebrationPhotoWrap}
             >
-              <Text style={styles.celebrationPhotoCloseButtonText}>닫기</Text>
+              <Image
+                resizeMode="cover"
+                source={{ uri: activeCelebrationPhoto.dataUrl }}
+                style={styles.celebrationPhotoBackground}
+              />
+              <View style={styles.celebrationPhotoBackdrop} />
+              <View style={styles.celebrationPhotoInner}>
+                <Image
+                  resizeMode="cover"
+                  source={{ uri: activeCelebrationPhoto.dataUrl }}
+                  style={styles.celebrationPhoto}
+                />
+              </View>
+              <View style={styles.celebrationPhotoScrim} />
+              <View style={styles.celebrationPhotoCaption}>
+                <Text style={styles.celebrationPhotoCaptionEyebrow}>오늘의 랜덤 이미지</Text>
+                <Text style={styles.celebrationPhotoCaptionTitle}>출근 완료를 축하해요</Text>
+                <Text style={styles.celebrationPhotoCaptionHint}>이미지를 터치하면 지도로 돌아갑니다.</Text>
+              </View>
             </Pressable>
-            <View style={styles.celebrationPhotoCaption}>
-              <Text style={styles.celebrationPhotoCaptionEyebrow}>오늘의 랜덤 이미지</Text>
-              <Text style={styles.celebrationPhotoCaptionTitle}>출근 완료를 축하해요</Text>
+          ) : loadingLocation ? (
+            <View style={styles.centerState}>
+              <ActivityIndicator size="large" color="#1463ff" />
+              <Text style={[styles.helperText, themeStyles.helperText]}>현재 위치를 확인하고 있습니다.</Text>
+            </View>
+          ) : locationPermission !== "granted" ? (
+            <View style={styles.centerState}>
+              <Text style={[styles.helperTitle, themeStyles.helperTitle]}>위치 권한이 필요합니다.</Text>
+              <Text style={[styles.helperText, themeStyles.helperText]}>
+                {Platform.OS === "web"
+                  ? webLocationHelpText
+                  : "권한을 허용하면 사업장 반경 안에서만 출근 버튼이 활성화됩니다."}
+              </Text>
+              <Pressable
+                onPress={handleRetryLocationPermission}
+                style={[styles.permissionButton, themeStyles.permissionButton]}
+              >
+                <Text style={styles.permissionButtonText}>위치 권한 다시 요청</Text>
+              </Pressable>
+              {Platform.OS === "web" ? (
+                <Text style={styles.permissionHint}>
+                  iPhone Safari에서는 주소창 왼쪽의 aA 메뉴에서 위치 권한을 다시 허용할 수 있습니다.
+                </Text>
+              ) : null}
+            </View>
+          ) : (
+            <AttendanceMap
+              companyLocation={{
+                latitude: companySetting.latitude,
+                longitude: companySetting.longitude,
+                latitudeDelta: COMPANY_LOCATION.latitudeDelta,
+                longitudeDelta: COMPANY_LOCATION.longitudeDelta,
+              }}
+              companyName={getDisplayLocationName(attendanceMeta, companySetting)}
+              companyRadiusMeters={companySetting.allowedRadiusMeters}
+              currentLocation={currentLocation}
+              style={styles.map}
+            />
+          )}
+        </View>
+
+        <View style={[styles.floatingHeaderCard, themeStyles.floatingCard]}>
+          <View style={styles.headerTextWrap}>
+            <Text style={[styles.workplaceTitle, themeStyles.workplaceTitle]}>
+              {getDisplayLocationName(attendanceMeta, companySetting)}
+            </Text>
+            <Text style={[styles.welcomeText, themeStyles.headerText]}>
+              {auth.user.name} <Text style={[styles.welcomeCode, themeStyles.welcomeCode]}>({auth.user.employeeCode})</Text>
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <View style={[styles.badge, themeStyles.badge]}>
+              <Text style={[styles.badgeText, themeStyles.badgeText]}>
+                {DEMO_MODE
+                  ? distance == null
+                    ? "DEMO"
+                    : `DEMO ${Math.round(distance)}m`
+                  : distance == null
+                    ? "확인 중"
+                    : `${Math.round(distance)}m`}
+              </Text>
+            </View>
+            <Pressable onPress={() => setShowMenu(true)} style={styles.menuButton}>
+              <Text style={styles.menuButtonText}>메뉴</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={[styles.floatingBottomCard, themeStyles.bottomPanel]}>
+          <View style={styles.attendanceSummaryRow}>
+            <View style={[styles.attendanceSummaryCard, themeStyles.attendanceSummaryCard]}>
+              <Text style={[styles.attendanceSummaryLabel, themeStyles.attendanceSummaryLabel]}>출근</Text>
+              <Text style={[styles.attendanceSummaryValue, themeStyles.attendanceSummaryValue]}>{formatTime(attendance.checkedInAt)}</Text>
+            </View>
+            <View style={[styles.attendanceSummaryCard, themeStyles.attendanceSummaryCard]}>
+              <Text style={[styles.attendanceSummaryLabel, themeStyles.attendanceSummaryLabel]}>퇴근</Text>
+              <Text style={[styles.attendanceSummaryValue, themeStyles.attendanceSummaryValue]}>{formatTime(attendance.checkedOutAt)}</Text>
             </View>
           </View>
-        ) : loadingLocation ? (
-          <View style={styles.centerState}>
-            <ActivityIndicator size="large" color="#1463ff" />
-            <Text style={[styles.helperText, themeStyles.helperText]}>현재 위치를 확인하고 있습니다.</Text>
-          </View>
-        ) : locationPermission !== "granted" ? (
-          <View style={styles.centerState}>
-            <Text style={[styles.helperTitle, themeStyles.helperTitle]}>위치 권한이 필요합니다.</Text>
-            <Text style={[styles.helperText, themeStyles.helperText]}>
-              {Platform.OS === "web"
-                ? webLocationHelpText
-                : "권한을 허용하면 사업장 반경 안에서만 출근 버튼이 활성화됩니다."}
-            </Text>
-            <Pressable
-              onPress={handleRetryLocationPermission}
-              style={[styles.permissionButton, themeStyles.permissionButton]}
-            >
-              <Text style={styles.permissionButtonText}>위치 권한 다시 요청</Text>
-            </Pressable>
-            {Platform.OS === "web" ? (
-              <Text style={styles.permissionHint}>
-                iPhone Safari에서는 주소창 왼쪽의 aA 메뉴에서 위치 권한을 다시 허용할 수 있습니다.
-              </Text>
-            ) : null}
-          </View>
-        ) : (
-          <AttendanceMap
-            companyLocation={{
-              latitude: companySetting.latitude,
-              longitude: companySetting.longitude,
-              latitudeDelta: COMPANY_LOCATION.latitudeDelta,
-              longitudeDelta: COMPANY_LOCATION.longitudeDelta,
-            }}
-            companyName={getDisplayLocationName(attendanceMeta, companySetting)}
-            companyRadiusMeters={companySetting.allowedRadiusMeters}
-            currentLocation={currentLocation}
-            style={styles.map}
-          />
-        )}
-      </View>
 
-      <View style={[styles.bottomPanel, themeStyles.bottomPanel]}>
-        <View style={styles.noticeHeaderRow}>
-          <Text style={[styles.panelTitle, themeStyles.panelTitle]}>공지사항</Text>
-          {hasLongNotice ? (
+          <View style={styles.noticeHeaderRow}>
+            <Text style={[styles.panelTitle, themeStyles.panelTitle]}>공지사항</Text>
             <Pressable
               onPress={() => setShowNoticeModal(true)}
               style={styles.noticeToggleButton}
             >
               <Text style={styles.noticeToggleButtonText}>전체 보기</Text>
             </Pressable>
-          ) : null}
-        </View>
-        {noticeBlocks.length > 0 ? (
-          <View
-            style={[
-              styles.noticeViewport,
-              { maxHeight: collapsedNoticeHeight },
-            ]}
-          >
-            <ScrollView
-              nestedScrollEnabled
-              scrollEnabled
-              showsVerticalScrollIndicator
+          </View>
+          {noticeBlocks.length > 0 ? (
+            <View
+              style={[
+                styles.noticeViewport,
+                { maxHeight: collapsedNoticeHeight },
+              ]}
             >
-              <View style={styles.noticeContent}>
-                {noticeBlocks.map((block) => {
-                  if (block.type === "heading") {
-                    return (
-                      <Text key={block.key} style={[styles.noticeHeading, themeStyles.noticeHeading]}>
-                        {block.text}
-                      </Text>
-                    );
-                  }
+              <ScrollView
+                nestedScrollEnabled
+                scrollEnabled
+                showsVerticalScrollIndicator
+              >
+                <View style={styles.noticeContent}>
+                  {noticeBlocks.map((block) => {
+                    if (block.type === "heading") {
+                      return (
+                        <Text key={block.key} style={[styles.noticeHeading, themeStyles.noticeHeading]}>
+                          {block.text}
+                        </Text>
+                      );
+                    }
 
-                  if (block.type === "bullet") {
-                    return (
-                      <View key={block.key} style={styles.noticeBulletRow}>
-                        <Text style={[styles.noticeBulletMark, themeStyles.noticeBulletMark]}>•</Text>
-                        <View style={styles.noticeBulletTextWrap}>
-                          {renderNoticeInline(
-                            block.text,
-                            [styles.noticeBulletText, themeStyles.noticeBulletText],
-                            [styles.noticeBoldText, themeStyles.noticeBoldText],
-                            [styles.noticeLinkText, themeStyles.noticeLinkText]
-                          )}
+                    if (block.type === "bullet") {
+                      return (
+                        <View key={block.key} style={styles.noticeBulletRow}>
+                          <Text style={[styles.noticeBulletMark, themeStyles.noticeBulletMark]}>•</Text>
+                          <View style={styles.noticeBulletTextWrap}>
+                            {renderNoticeInline(
+                              block.text,
+                              [styles.noticeBulletText, themeStyles.noticeBulletText],
+                              [styles.noticeBoldText, themeStyles.noticeBoldText],
+                              [styles.noticeLinkText, themeStyles.noticeLinkText]
+                            )}
+                          </View>
                         </View>
+                      );
+                    }
+
+                    return (
+                      <View key={block.key} style={styles.noticeParagraphWrap}>
+                        {renderNoticeInline(
+                          block.text,
+                          [styles.panelDescription, themeStyles.panelDescription],
+                          [styles.noticeBoldText, themeStyles.noticeBoldText],
+                          [styles.noticeLinkText, themeStyles.noticeLinkText]
+                        )}
                       </View>
                     );
-                  }
+                  })}
+                </View>
+              </ScrollView>
+            </View>
+          ) : (
+            <Text style={[styles.panelDescription, themeStyles.panelDescription]}>등록된 공지사항이 없습니다.</Text>
+          )}
 
-                  return (
-                    <View key={block.key} style={styles.noticeParagraphWrap}>
-                      {renderNoticeInline(
-                        block.text,
-                        [styles.panelDescription, themeStyles.panelDescription],
-                        [styles.noticeBoldText, themeStyles.noticeBoldText],
-                        [styles.noticeLinkText, themeStyles.noticeLinkText]
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            </ScrollView>
+          <View style={styles.actionRow}>
+            <Pressable
+              disabled={!canCheckIn}
+              onPress={handleCheckIn}
+              style={[styles.checkInButton, styles.actionButton, themeStyles.checkInButton, !canCheckIn && styles.buttonDisabled]}
+            >
+              {submittingAttendance && !attendance.checkedInAt ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.checkInButtonText}>출근하기</Text>
+              )}
+            </Pressable>
+
+            <Pressable
+              disabled={!canCheckOut}
+              onPress={handleCheckOut}
+              style={[styles.secondaryButton, styles.actionButton, themeStyles.secondaryButton, !canCheckOut && styles.buttonDisabled]}
+            >
+              {submittingAttendance && attendance.checkedInAt && !attendance.checkedOutAt ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.secondaryButtonText}>퇴근하기</Text>
+              )}
+            </Pressable>
           </View>
-        ) : (
-          <Text style={[styles.panelDescription, themeStyles.panelDescription]}>등록된 공지사항이 없습니다.</Text>
-        )}
-
-        <View style={styles.actionRow}>
-          <Pressable
-            disabled={!canCheckIn}
-            onPress={handleCheckIn}
-            style={[styles.checkInButton, styles.actionButton, themeStyles.checkInButton, !canCheckIn && styles.buttonDisabled]}
-          >
-            {submittingAttendance && !attendance.checkedInAt ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.checkInButtonText}>출근하기</Text>
-            )}
-          </Pressable>
-
-          <Pressable
-            disabled={!canCheckOut}
-            onPress={handleCheckOut}
-            style={[styles.secondaryButton, styles.actionButton, themeStyles.secondaryButton, !canCheckOut && styles.buttonDisabled]}
-          >
-            {submittingAttendance && attendance.checkedInAt && !attendance.checkedOutAt ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.secondaryButtonText}>퇴근하기</Text>
-            )}
-          </Pressable>
         </View>
       </View>
     </SafeAreaView>
@@ -2168,14 +2164,52 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 12,
   },
+  mapFirstShell: {
+    flex: 1,
+    marginHorizontal: 12,
+    marginVertical: 10,
+    position: "relative",
+  },
+  floatingHeaderCard: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    top: 12,
+    zIndex: 5,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    backgroundColor: "rgba(255,255,255,0.97)",
+    borderColor: "#e4ebf5",
+    borderRadius: 26,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.13,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
+  headerTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  workplaceTitle: {
+    color: "#1463ff",
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
   welcomeText: {
     color: "#172033",
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "800",
   },
   welcomeCode: {
     color: "#52607a",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
   },
   badge: {
@@ -2192,20 +2226,25 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   menuButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    backgroundColor: "#172033",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 13,
+    paddingVertical: 9,
     shadowColor: "#0f172a",
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
+  },
+  menuButtonText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "800",
   },
   menuBar: {
     width: 18,
@@ -2216,9 +2255,8 @@ const styles = StyleSheet.create({
   },
   mapCard: {
     flex: 1,
-    marginHorizontal: 16,
     overflow: "hidden",
-    borderRadius: 28,
+    borderRadius: 34,
     backgroundColor: "#dfe7f4",
   },
   map: {
@@ -2246,8 +2284,6 @@ const styles = StyleSheet.create({
   celebrationPhotoInner: {
     width: "100%",
     height: "100%",
-    paddingHorizontal: 18,
-    paddingVertical: 18,
   },
   celebrationPhotoScrim: {
     ...StyleSheet.absoluteFillObject,
@@ -2292,6 +2328,13 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 18,
     fontWeight: "800",
+  },
+  celebrationPhotoCaptionHint: {
+    color: "rgba(255,255,255,0.86)",
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 19,
+    marginTop: 6,
   },
   centerState: {
     alignItems: "center",
@@ -2340,11 +2383,28 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 8,
   },
+  floatingBottomCard: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    bottom: 12,
+    zIndex: 5,
+    backgroundColor: "#ffffff",
+    borderColor: "#e4ebf5",
+    borderRadius: 30,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 10,
+  },
   attendanceSummaryRow: {
     flexDirection: "row",
-    gap: 8,
-    marginHorizontal: 20,
-    marginBottom: 10,
+    gap: 10,
+    marginBottom: 12,
   },
   attendanceSummaryCard: {
     flex: 1,
