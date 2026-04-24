@@ -1032,6 +1032,9 @@ export default function App() {
         right: 16,
       }
     : null;
+  const mapDistanceResponsiveStyle = isLandscapeLayout
+    ? { top: 82 }
+    : { bottom: 326 };
 
   async function handleLogin() {
     try {
@@ -1632,7 +1635,7 @@ export default function App() {
         {showCelebrationPhoto && activeCelebrationPhoto ? (
           <Pressable
             onPress={() => setShowCelebrationPhoto(false)}
-            style={styles.celebrationPhotoWrap}
+            style={[styles.celebrationPhotoWrap, styles.map]}
           >
             <Image
               source={{ uri: activeCelebrationPhoto.dataUrl }}
@@ -1698,7 +1701,7 @@ export default function App() {
           <View style={styles.topMenuBar} />
           <View style={styles.topMenuBar} />
         </Pressable>
-        <View style={styles.mapDistancePill}>
+        <View style={[styles.mapDistancePill, mapDistanceResponsiveStyle]}>
           <Text style={styles.mapDistanceIcon}>⌖</Text>
           <Text style={styles.mapDistanceText}>
             {DEMO_MODE
@@ -2171,7 +2174,6 @@ const styles = StyleSheet.create({
   mapDistancePill: {
     position: "absolute",
     left: 22,
-    top: 82,
     zIndex: 5,
     flexDirection: "row",
     alignItems: "center",
@@ -2312,7 +2314,7 @@ const styles = StyleSheet.create({
   },
   celebrationPhotoScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(15, 23, 42, 0.08)",
+    backgroundColor: "rgba(15, 23, 42, 0.24)",
   },
   celebrationPhotoCloseButton: {
     position: "absolute",
@@ -2335,13 +2337,19 @@ const styles = StyleSheet.create({
   },
   celebrationPhotoCaption: {
     position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 16,
-    backgroundColor: "rgba(15,23,42,0.58)",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    left: 18,
+    right: 18,
+    bottom: 160,
+    zIndex: 20,
+    backgroundColor: "rgba(15,23,42,0.76)",
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    shadowColor: "#000000",
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 14,
   },
   celebrationPhotoCaptionEyebrow: {
     color: "rgba(255,255,255,0.78)",
