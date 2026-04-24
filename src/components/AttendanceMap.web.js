@@ -125,10 +125,8 @@ export default function AttendanceMap({
 const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: "#dfe7f4",
-    padding: 16,
   },
   map: {
-    borderRadius: 24,
     height: "100%",
     overflow: "hidden",
     width: "100%",
