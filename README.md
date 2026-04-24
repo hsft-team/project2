@@ -79,7 +79,7 @@ npx expo export --platform web
 권장 운영 구조:
 
 - `api.hsft.io.kr` -> backend API
-- `mobile.hsft.io.kr` -> mobile web (`4173`)
+- `m.hsft.io.kr` -> mobile web (`4173`)
 
 운영 Nginx 예시:
 
