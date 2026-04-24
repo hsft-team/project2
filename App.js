@@ -1622,33 +1622,6 @@ export default function App() {
         </View>
       ) : null}
       <View style={styles.mapFirstShell}>
-        <View style={styles.minimalHeader}>
-          <View style={styles.headerTextWrap}>
-            <Text style={[styles.workplaceTitle, themeStyles.workplaceTitle]}>
-              {getDisplayLocationName(attendanceMeta, companySetting)}
-            </Text>
-            <Text style={[styles.welcomeText, themeStyles.headerText]}>
-              {auth.user.name} <Text style={[styles.welcomeCode, themeStyles.welcomeCode]}>({auth.user.employeeCode})</Text>
-            </Text>
-          </View>
-          <View style={styles.headerActions}>
-            <View style={[styles.badge, themeStyles.badge]}>
-              <Text style={[styles.badgeText, themeStyles.badgeText]}>
-                {DEMO_MODE
-                  ? distance == null
-                    ? "DEMO"
-                    : `DEMO ${Math.round(distance)}m`
-                  : distance == null
-                    ? "확인 중"
-                    : `${Math.round(distance)}m`}
-              </Text>
-            </View>
-            <Pressable onPress={() => setShowMenu(true)} style={styles.menuButton}>
-              <Text style={styles.menuButtonText}>메뉴</Text>
-            </Pressable>
-          </View>
-        </View>
-
         <View style={styles.mapHeroStack}>
           <View style={[styles.mapCard, themeStyles.mapCard]}>
             {showCelebrationPhoto && activeCelebrationPhoto ? (
@@ -1717,6 +1690,33 @@ export default function App() {
           </View>
 
           <View style={[styles.mapFloatingControls, themeStyles.floatingCard]}>
+            <View style={styles.floatingUserRow}>
+              <View style={styles.headerTextWrap}>
+                <Text style={[styles.workplaceTitle, themeStyles.workplaceTitle]}>
+                  {getDisplayLocationName(attendanceMeta, companySetting)}
+                </Text>
+                <Text style={[styles.welcomeText, themeStyles.headerText]}>
+                  {auth.user.name} <Text style={[styles.welcomeCode, themeStyles.welcomeCode]}>({auth.user.employeeCode})</Text>
+                </Text>
+              </View>
+              <View style={styles.headerActions}>
+                <View style={[styles.badge, themeStyles.badge]}>
+                  <Text style={[styles.badgeText, themeStyles.badgeText]}>
+                    {DEMO_MODE
+                      ? distance == null
+                        ? "DEMO"
+                        : `DEMO ${Math.round(distance)}m`
+                      : distance == null
+                        ? "확인 중"
+                        : `${Math.round(distance)}m`}
+                  </Text>
+                </View>
+                <Pressable onPress={() => setShowMenu(true)} style={styles.menuButton}>
+                  <Text style={styles.menuButtonText}>메뉴</Text>
+                </Pressable>
+              </View>
+            </View>
+
             <View style={styles.attendanceSummaryRow}>
               <View style={[styles.attendanceSummaryCard, themeStyles.attendanceSummaryCard]}>
                 <Text style={[styles.attendanceSummaryLabel, themeStyles.attendanceSummaryLabel]}>출근</Text>
@@ -1753,74 +1753,20 @@ export default function App() {
                 )}
               </Pressable>
             </View>
-          </View>
-        </View>
 
-        <View style={[styles.noticePanelCard, themeStyles.bottomPanel]}>
-          <View style={styles.noticeHeaderRow}>
-            <Text style={[styles.panelTitle, themeStyles.panelTitle]}>공지사항</Text>
             <Pressable
               onPress={() => setShowNoticeModal(true)}
-              style={styles.noticeToggleButton}
+              style={styles.noticeDetailButton}
             >
-              <Text style={styles.noticeToggleButtonText}>전체 보기</Text>
+              <View>
+                <Text style={styles.noticeDetailEyebrow}>공지사항</Text>
+                <Text style={styles.noticeDetailTitle}>
+                  {noticeBlocks.length > 0 ? "오늘 공지 상세보기" : "등록된 공지사항이 없습니다"}
+                </Text>
+              </View>
+              <Text style={styles.noticeDetailArrow}>보기</Text>
             </Pressable>
           </View>
-          {noticeBlocks.length > 0 ? (
-            <View
-              style={[
-                styles.noticeViewport,
-                { maxHeight: collapsedNoticeHeight },
-              ]}
-            >
-              <ScrollView
-                nestedScrollEnabled
-                scrollEnabled
-                showsVerticalScrollIndicator
-              >
-                <View style={styles.noticeContent}>
-                  {noticeBlocks.map((block) => {
-                    if (block.type === "heading") {
-                      return (
-                        <Text key={block.key} style={[styles.noticeHeading, themeStyles.noticeHeading]}>
-                          {block.text}
-                        </Text>
-                      );
-                    }
-
-                    if (block.type === "bullet") {
-                      return (
-                        <View key={block.key} style={styles.noticeBulletRow}>
-                          <Text style={[styles.noticeBulletMark, themeStyles.noticeBulletMark]}>•</Text>
-                          <View style={styles.noticeBulletTextWrap}>
-                            {renderNoticeInline(
-                              block.text,
-                              [styles.noticeBulletText, themeStyles.noticeBulletText],
-                              [styles.noticeBoldText, themeStyles.noticeBoldText],
-                              [styles.noticeLinkText, themeStyles.noticeLinkText]
-                            )}
-                          </View>
-                        </View>
-                      );
-                    }
-
-                    return (
-                      <View key={block.key} style={styles.noticeParagraphWrap}>
-                        {renderNoticeInline(
-                          block.text,
-                          [styles.panelDescription, themeStyles.panelDescription],
-                          [styles.noticeBoldText, themeStyles.noticeBoldText],
-                          [styles.noticeLinkText, themeStyles.noticeLinkText]
-                        )}
-                      </View>
-                    );
-                  })}
-                </View>
-              </ScrollView>
-            </View>
-          ) : (
-            <Text style={[styles.panelDescription, themeStyles.panelDescription]}>등록된 공지사항이 없습니다.</Text>
-          )}
         </View>
       </View>
     </SafeAreaView>
@@ -2170,9 +2116,7 @@ const styles = StyleSheet.create({
   mapFirstShell: {
     flex: 1,
     backgroundColor: "#eef3fb",
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 14,
+    padding: 14,
   },
   minimalHeader: {
     alignItems: "center",
@@ -2417,6 +2361,41 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 14 },
     elevation: 10,
+  },
+  floatingUserRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 12,
+  },
+  noticeDetailButton: {
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+    borderColor: "#e2e8f0",
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  noticeDetailEyebrow: {
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: "800",
+    marginBottom: 3,
+  },
+  noticeDetailTitle: {
+    color: "#172033",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  noticeDetailArrow: {
+    color: "#1463ff",
+    fontSize: 14,
+    fontWeight: "900",
   },
   noticePanelCard: {
     backgroundColor: "#ffffff",
