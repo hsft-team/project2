@@ -500,6 +500,7 @@ export default function App() {
   const [activeCelebrationPhoto, setActiveCelebrationPhoto] = useState(null);
   const [showCelebrationPhoto, setShowCelebrationPhoto] = useState(false);
   const [bottomLayerHeight, setBottomLayerHeight] = useState(0);
+  const [mapRecenterRequest, setMapRecenterRequest] = useState(0);
 
   useEffect(() => {
     const savedEmployeeCode = loadEmployeeCode();
@@ -1619,26 +1620,22 @@ export default function App() {
         visible={showNoticeModal}
         onRequestClose={handleCloseNoticeModal}
       >
-        <View style={styles.sheetBackdrop}>
-          <View style={[styles.sheetCard, styles.noticeSheetCard]}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeaderRow}>
-              <View style={styles.sheetHeaderTextWrap}>
-                <Text style={styles.sheetTitle}>공지사항 전체 보기</Text>
-                <Text style={styles.sheetDescription}>
-                  운영 공지와 안내 문구를 한 번에 확인할 수 있습니다.
-                </Text>
+        <View style={[styles.sheetBackdrop, styles.noticeModalBackdrop]}>
+          <View style={styles.noticeModalCard}>
+            <View style={styles.noticeModalAccent} />
+            <View style={styles.noticeModalHeader}>
+              <View>
+                <Text style={styles.noticeModalEyebrow}>NOTICE</Text>
+                <Text style={styles.noticeModalTitle}>공지사항</Text>
               </View>
-              <Pressable
-                onPress={handleCloseNoticeModal}
-                style={styles.sheetCloseButton}
-              >
-                <Text style={styles.sheetCloseButtonText}>확인했습니다</Text>
+              <Pressable onPress={handleCloseNoticeModal} style={styles.noticeModalCloseButton}>
+                <Text style={styles.noticeModalCloseButtonText}>확인</Text>
               </Pressable>
             </View>
 
             {noticeBlocks.length > 0 ? (
               <ScrollView
+                style={styles.noticeModalScroll}
                 contentContainerStyle={styles.noticeSheetContent}
                 showsVerticalScrollIndicator
               >
@@ -1753,6 +1750,7 @@ export default function App() {
             companyName={getDisplayLocationName(attendanceMeta, companySetting)}
             companyRadiusMeters={companySetting.allowedRadiusMeters}
             currentLocation={currentLocation}
+            recenterRequest={mapRecenterRequest}
             style={styles.map}
           />
         )}
@@ -1763,7 +1761,13 @@ export default function App() {
           <View style={styles.topMenuBar} />
         </Pressable>
         <View style={[styles.mapDistancePill, mapDistanceResponsiveStyle]}>
-          <Text style={styles.mapDistanceIcon}>⌖</Text>
+          <Pressable
+            disabled={!currentLocation}
+            onPress={() => setMapRecenterRequest((value) => value + 1)}
+            style={styles.mapDistanceIconButton}
+          >
+            <Text style={styles.mapDistanceIcon}>⌖</Text>
+          </Pressable>
           <Text style={styles.mapDistanceText}>
             {DEMO_MODE
               ? distance == null
@@ -2251,6 +2255,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "900",
   },
+  mapDistanceIconButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 22,
+    minWidth: 22,
+  },
   mapDistanceText: {
     color: "#172033",
     fontSize: 13,
@@ -2657,9 +2667,75 @@ const styles = StyleSheet.create({
   noticeSheetCard: {
     maxHeight: "72%",
   },
+  noticeModalBackdrop: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 18,
+  },
+  noticeModalCard: {
+    width: "100%",
+    maxWidth: 430,
+    maxHeight: "72%",
+    backgroundColor: "#ffffff",
+    borderColor: "rgba(226,232,240,0.96)",
+    borderRadius: 30,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.22,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 18 },
+    elevation: 12,
+  },
+  noticeModalAccent: {
+    width: 48,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: "#14b8a6",
+    marginBottom: 14,
+  },
+  noticeModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 14,
+  },
+  noticeModalEyebrow: {
+    color: "#14b8a6",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1.8,
+    marginBottom: 3,
+  },
+  noticeModalTitle: {
+    color: "#10213a",
+    fontSize: 23,
+    fontWeight: "900",
+    letterSpacing: -0.4,
+  },
+  noticeModalCloseButton: {
+    backgroundColor: "#172033",
+    borderRadius: 999,
+    paddingHorizontal: 17,
+    paddingVertical: 10,
+  },
+  noticeModalCloseButtonText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  noticeModalScroll: {
+    borderRadius: 20,
+    backgroundColor: "#f8fafc",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
   noticeSheetContent: {
     gap: 8,
-    paddingBottom: 12,
+    paddingBottom: 4,
   },
   noticeHeading: {
     color: "#172033",

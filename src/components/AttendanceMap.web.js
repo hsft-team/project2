@@ -42,7 +42,7 @@ const currentLocationIcon = new L.DivIcon({
   iconAnchor: [17, 17],
 });
 
-function MapViewport({ companyLocation, currentLocation }) {
+function MapViewport({ companyLocation, currentLocation, recenterRequest }) {
   const map = useMap();
 
   useEffect(() => {
@@ -52,7 +52,7 @@ function MapViewport({ companyLocation, currentLocation }) {
     }
 
     map.setView([companyLocation.latitude, companyLocation.longitude], 15);
-  }, [companyLocation.latitude, companyLocation.longitude, currentLocation, map]);
+  }, [companyLocation.latitude, companyLocation.longitude, currentLocation, map, recenterRequest]);
 
   return null;
 }
@@ -62,6 +62,7 @@ export default function AttendanceMap({
   companyName,
   companyRadiusMeters,
   currentLocation,
+  recenterRequest = 0,
   style,
 }) {
   const distanceToCompany = currentLocation
@@ -84,7 +85,11 @@ export default function AttendanceMap({
         style={styles.map}
         zoom={15}
       >
-        <MapViewport companyLocation={companyLocation} currentLocation={currentLocation} />
+        <MapViewport
+          companyLocation={companyLocation}
+          currentLocation={currentLocation}
+          recenterRequest={recenterRequest}
+        />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
