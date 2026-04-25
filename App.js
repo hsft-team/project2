@@ -60,6 +60,47 @@ const INITIAL_STATUS = {
   checkedOutAt: null,
 };
 const MAX_LOCATION_ACCURACY_METERS = 100;
+const NOTICE_ACK_STORAGE_PREFIX = "attendance-notice-ack";
+
+function getNoticeHash(message) {
+  const normalized = message?.trim();
+  if (!normalized) {
+    return "";
+  }
+
+  let hash = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash = (hash * 31 + normalized.charCodeAt(index)) >>> 0;
+  }
+
+  return hash.toString(36);
+}
+
+function getNoticeAckKey(employeeCode, noticeMessage) {
+  const noticeHash = getNoticeHash(noticeMessage);
+  const normalizedEmployeeCode = employeeCode?.trim();
+  if (!noticeHash || !normalizedEmployeeCode) {
+    return "";
+  }
+
+  return `${NOTICE_ACK_STORAGE_PREFIX}:${normalizedEmployeeCode}:${noticeHash}`;
+}
+
+function isNoticeAcknowledged(ackKey) {
+  if (!ackKey || typeof window === "undefined" || !window.localStorage) {
+    return true;
+  }
+
+  return window.localStorage.getItem(ackKey) === "1";
+}
+
+function acknowledgeNotice(ackKey) {
+  if (!ackKey || typeof window === "undefined" || !window.localStorage) {
+    return;
+  }
+
+  window.localStorage.setItem(ackKey, "1");
+}
 
 function parseNoticeMessage(message) {
   if (!message?.trim()) {
@@ -1017,6 +1058,10 @@ export default function App() {
     () => parseNoticeMessage(companySetting.noticeMessage),
     [companySetting.noticeMessage]
   );
+  const noticeAckKey = useMemo(
+    () => getNoticeAckKey(auth?.user?.employeeCode, companySetting.noticeMessage),
+    [auth?.user?.employeeCode, companySetting.noticeMessage]
+  );
   const skinPalette = useMemo(
     () => getSkinPalette(companySetting.mobileSkinKey),
     [companySetting.mobileSkinKey]
@@ -1036,6 +1081,21 @@ export default function App() {
   const mapDistanceResponsiveStyle = isLandscapeLayout
     ? { top: 82 }
     : { bottom: bottomLayerHeight ? bottomLayerHeight + 26 : 352 };
+
+  useEffect(() => {
+    if (!auth || !noticeAckKey || !noticeBlocks.length) {
+      return;
+    }
+
+    if (!isNoticeAcknowledged(noticeAckKey)) {
+      setShowNoticeModal(true);
+    }
+  }, [auth, noticeAckKey, noticeBlocks.length]);
+
+  function handleCloseNoticeModal() {
+    acknowledgeNotice(noticeAckKey);
+    setShowNoticeModal(false);
+  }
 
   async function handleLogin() {
     try {
@@ -1557,7 +1617,7 @@ export default function App() {
         animationType="slide"
         transparent
         visible={showNoticeModal}
-        onRequestClose={() => setShowNoticeModal(false)}
+        onRequestClose={handleCloseNoticeModal}
       >
         <View style={styles.sheetBackdrop}>
           <View style={[styles.sheetCard, styles.noticeSheetCard]}>
@@ -1570,10 +1630,10 @@ export default function App() {
                 </Text>
               </View>
               <Pressable
-                onPress={() => setShowNoticeModal(false)}
+                onPress={handleCloseNoticeModal}
                 style={styles.sheetCloseButton}
               >
-                <Text style={styles.sheetCloseButtonText}>닫기</Text>
+                <Text style={styles.sheetCloseButtonText}>확인했습니다</Text>
               </Pressable>
             </View>
 
