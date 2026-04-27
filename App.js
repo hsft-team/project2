@@ -62,6 +62,29 @@ const INITIAL_STATUS = {
 const MAX_LOCATION_ACCURACY_METERS = 100;
 const NOTICE_ACK_STORAGE_PREFIX = "attendance-notice-ack";
 
+function createInitialAttendanceMeta(overrides = {}) {
+  return {
+    attendanceDate: null,
+    companyName: COMPANY_NAME,
+    workplaceName: null,
+    status: null,
+    ...overrides,
+  };
+}
+
+function createInitialCompanySetting(overrides = {}) {
+  return {
+    companyName: COMPANY_NAME,
+    workplaceName: null,
+    latitude: COMPANY_LOCATION.latitude,
+    longitude: COMPANY_LOCATION.longitude,
+    allowedRadiusMeters: COMPANY_RADIUS_METERS,
+    noticeMessage: "",
+    mobileSkinKey: "classic",
+    ...overrides,
+  };
+}
+
 function getNoticeHash(message) {
   const normalized = message?.trim();
   if (!normalized) {
@@ -478,22 +501,9 @@ export default function App() {
   const [inviteToken, setInviteToken] = useState("");
   const [invitePreview, setInvitePreview] = useState(null);
   const [attendance, setAttendance] = useState(INITIAL_STATUS);
-  const [attendanceMeta, setAttendanceMeta] = useState({
-    attendanceDate: null,
-    companyName: COMPANY_NAME,
-    workplaceName: null,
-    status: null,
-  });
+  const [attendanceMeta, setAttendanceMeta] = useState(createInitialAttendanceMeta());
   const [errorMessage, setErrorMessage] = useState("");
-  const [companySetting, setCompanySetting] = useState({
-    companyName: COMPANY_NAME,
-    workplaceName: null,
-    latitude: COMPANY_LOCATION.latitude,
-    longitude: COMPANY_LOCATION.longitude,
-    allowedRadiusMeters: COMPANY_RADIUS_METERS,
-    noticeMessage: "",
-    mobileSkinKey: "classic",
-  });
+  const [companySetting, setCompanySetting] = useState(createInitialCompanySetting());
   const [celebrationEnabled, setCelebrationEnabled] = useState(false);
   const [celebrationPhotos, setCelebrationPhotos] = useState([]);
   const [uploadingCelebrationPhotos, setUploadingCelebrationPhotos] = useState(false);
@@ -501,6 +511,11 @@ export default function App() {
   const [showCelebrationPhoto, setShowCelebrationPhoto] = useState(false);
   const [bottomLayerHeight, setBottomLayerHeight] = useState(0);
   const [mapRecenterRequest, setMapRecenterRequest] = useState(0);
+  const authRef = useRef(null);
+
+  useEffect(() => {
+    authRef.current = auth;
+  }, [auth]);
 
   useEffect(() => {
     const savedEmployeeCode = loadEmployeeCode();
@@ -512,12 +527,10 @@ export default function App() {
     const savedAuth = loadAuth();
     if (savedAuth?.token) {
       setAuth(savedAuth);
-      setAttendanceMeta({
-        attendanceDate: null,
+      setAttendanceMeta(createInitialAttendanceMeta({
         companyName: savedAuth.user?.companyName || COMPANY_NAME,
         workplaceName: savedAuth.user?.workplaceName || null,
-        status: null,
-      });
+      }));
     }
   }, []);
 
@@ -622,15 +635,16 @@ export default function App() {
     let active = true;
 
     async function loadPublicCompanySetting() {
-      const nextCompanySetting = await getPublicCompanySetting();
-      if (!active || !nextCompanySetting) {
+      if (authRef.current?.token) {
         return;
       }
 
-      setCompanySetting((prev) => ({
-        ...prev,
-        ...nextCompanySetting,
-      }));
+      const nextCompanySetting = await getPublicCompanySetting();
+      if (!active || !nextCompanySetting || authRef.current?.token) {
+        return;
+      }
+
+      setCompanySetting(createInitialCompanySetting(nextCompanySetting));
       setAttendanceMeta((prev) => ({
         ...prev,
         companyName: nextCompanySetting.companyName || prev.companyName,
@@ -1121,21 +1135,14 @@ export default function App() {
       setNewPasswordInput("");
       setConfirmPasswordInput("");
       setAttendance(INITIAL_STATUS);
-      setAttendanceMeta({
-        attendanceDate: null,
+      setAttendanceMeta(createInitialAttendanceMeta({
         companyName: response.user.companyName || COMPANY_NAME,
         workplaceName: response.user.workplaceName || null,
-        status: null,
-      });
-      setCompanySetting({
+      }));
+      setCompanySetting(createInitialCompanySetting({
         companyName: response.user.companyName || COMPANY_NAME,
         workplaceName: response.user.workplaceName || null,
-        latitude: COMPANY_LOCATION.latitude,
-        longitude: COMPANY_LOCATION.longitude,
-        allowedRadiusMeters: COMPANY_RADIUS_METERS,
-        noticeMessage: "",
-        mobileSkinKey: "classic",
-      });
+      }));
     } catch (error) {
       showError("로그인 실패", error.message || "다시 시도해 주세요.");
     } finally {
@@ -1230,12 +1237,9 @@ export default function App() {
     setNewPasswordInput("");
     setConfirmPasswordInput("");
     setAttendance(INITIAL_STATUS);
-    setAttendanceMeta({
-      attendanceDate: null,
-      companyName: companySetting.companyName || COMPANY_NAME,
-      workplaceName: companySetting.workplaceName || null,
-      status: null,
-    });
+    setShowNoticeModal(false);
+    setAttendanceMeta(createInitialAttendanceMeta());
+    setCompanySetting(createInitialCompanySetting());
   }
 
   function handleOpenInviteInApp() {
