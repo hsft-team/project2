@@ -152,6 +152,13 @@ function formatFlexibleWorkMinutes(minutes) {
   return `${remainingMinutes}분`;
 }
 
+function formatVacationDays(days) {
+  if (Number.isInteger(days)) {
+    return `${days}일`;
+  }
+  return `${days.toFixed(1).replace(/\.0$/, "")}일`;
+}
+
 function getWorkRequestDetailText(request) {
   const details = [];
   if (request.halfDayTypeLabel) {
@@ -1249,6 +1256,31 @@ export default function App() {
       selectedRequests: requestsByDate[selectedVacationDate] || [],
     };
   }, [selectedVacationDate, vacationCalendarCursor, workRequests]);
+  const vacationUsageSummary = useMemo(() => {
+    return workRequests
+      .filter((request) => request.status === "APPROVED")
+      .reduce((summary, request) => {
+        if (request.requestType === "VACATION") {
+          return {
+            ...summary,
+            annualLeaveDays: summary.annualLeaveDays + 1,
+          };
+        }
+        if (request.requestType === "HALF_DAY") {
+          return {
+            ...summary,
+            annualLeaveDays: summary.annualLeaveDays + 0.5,
+          };
+        }
+        if (request.requestType === "SPECIAL_LEAVE") {
+          return {
+            ...summary,
+            otherLeaveDays: summary.otherLeaveDays + 1,
+          };
+        }
+        return summary;
+      }, { annualLeaveDays: 0, otherLeaveDays: 0 });
+  }, [workRequests]);
   const isLandscapeLayout = windowWidth > windowHeight;
   const bottomLayerResponsiveStyle = isLandscapeLayout
     ? {
@@ -2045,6 +2077,26 @@ export default function App() {
             </View>
 
             <ScrollView style={styles.workRequestScroll} contentContainerStyle={styles.workRequestScrollContent}>
+              <View style={styles.vacationUsageSummaryCard}>
+                <Text style={styles.vacationUsageSummaryTitle}>내가 사용한 휴가</Text>
+                <View style={styles.vacationUsageSummaryRow}>
+                  <View style={styles.vacationUsageSummaryItem}>
+                    <Text style={styles.vacationUsageSummaryLabel}>연차사용</Text>
+                    <Text style={styles.vacationUsageSummaryValue}>
+                      {formatVacationDays(vacationUsageSummary.annualLeaveDays)}
+                    </Text>
+                    <Text style={styles.vacationUsageSummaryMeta}>일반휴가 + 반차</Text>
+                  </View>
+                  <View style={styles.vacationUsageSummaryItem}>
+                    <Text style={styles.vacationUsageSummaryLabel}>기타</Text>
+                    <Text style={styles.vacationUsageSummaryValue}>
+                      {formatVacationDays(vacationUsageSummary.otherLeaveDays)}
+                    </Text>
+                    <Text style={styles.vacationUsageSummaryMeta}>경조사</Text>
+                  </View>
+                </View>
+              </View>
+
               <View style={styles.vacationCalendarHeader}>
                 <Pressable onPress={() => moveVacationCalendarMonth(-1)} style={styles.calendarMoveButton}>
                   <Text style={styles.calendarMoveButtonText}>이전</Text>
@@ -2861,6 +2913,49 @@ const styles = StyleSheet.create({
     color: "#4338ca",
     fontSize: 13,
     fontWeight: "800",
+  },
+  vacationUsageSummaryCard: {
+    backgroundColor: "#eef6ff",
+    borderColor: "#dbeafe",
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 16,
+  },
+  vacationUsageSummaryTitle: {
+    color: "#172033",
+    fontSize: 15,
+    fontWeight: "900",
+    marginBottom: 12,
+  },
+  vacationUsageSummaryRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  vacationUsageSummaryItem: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  vacationUsageSummaryLabel: {
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  vacationUsageSummaryValue: {
+    color: "#1463ff",
+    fontSize: 24,
+    fontWeight: "900",
+    marginBottom: 3,
+  },
+  vacationUsageSummaryMeta: {
+    color: "#64748b",
+    fontSize: 11,
+    fontWeight: "700",
   },
   vacationCalendarHeader: {
     alignItems: "center",
