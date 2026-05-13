@@ -385,7 +385,11 @@ export async function getWorkRequests({ token }) {
         : [],
     };
   } catch (error) {
-    throw new Error(getErrorMessage(error, "근무 신청 목록을 불러오지 못했습니다."));
+    console.warn("Failed to load work requests", error?.response?.data || error?.message || error);
+    return {
+      approvalRequired: true,
+      requests: [],
+    };
   }
 }
 
