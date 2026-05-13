@@ -1813,47 +1813,28 @@ export default function App() {
         </View>
       </Modal>
       <Modal
-        animationType="slide"
+        animationType="fade"
+        transparent
         visible={showMenu}
         onRequestClose={() => setShowMenu(false)}
       >
-        <SafeAreaView style={styles.menuScreen}>
-          <View style={styles.menuHeader}>
-            <View>
-              <Text style={styles.menuEyebrow}>MENU</Text>
-              <Text style={styles.menuTitle}>전체 메뉴</Text>
-            </View>
-            <Pressable onPress={() => setShowMenu(false)} style={styles.menuCloseButton}>
-              <Text style={styles.menuCloseButtonText}>닫기</Text>
-            </Pressable>
-          </View>
-
-          <Text style={styles.menuDescription}>
-            휴가 신청과 내 휴가 현황, 이미지 설정을 이곳에서 관리할 수 있습니다.
-          </Text>
-
+        <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
           <View style={styles.menuCard}>
             <Pressable
               onPress={handleOpenWorkRequestModal}
               style={styles.menuItem}
             >
-              <View>
-                <Text style={styles.menuItemTitle}>휴가 신청</Text>
-                <Text style={styles.menuItemMeta}>
-                  {companySetting.workRequestApprovalRequired ? "관리자 승인 후 확정" : "신청 즉시 확정"}
-                </Text>
-              </View>
-              <Text style={styles.menuItemArrow}>›</Text>
+              <Text style={styles.menuItemTitle}>휴가 신청</Text>
+              <Text style={styles.menuItemMeta}>
+                {companySetting.workRequestApprovalRequired ? "승인형" : "즉시 확정"}
+              </Text>
             </Pressable>
             <Pressable
               onPress={handleOpenVacationInfoModal}
               style={styles.menuItem}
             >
-              <View>
-                <Text style={styles.menuItemTitle}>내 휴가 정보</Text>
-                <Text style={styles.menuItemMeta}>달력과 사용 일수 확인</Text>
-              </View>
-              <Text style={styles.menuItemArrow}>›</Text>
+              <Text style={styles.menuItemTitle}>내 휴가 정보</Text>
+              <Text style={styles.menuItemMeta}>달력으로 보기</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -1862,16 +1843,13 @@ export default function App() {
               }}
               style={styles.menuItem}
             >
-              <View>
-                <Text style={styles.menuItemTitle}>이미지 설정</Text>
-                <Text style={styles.menuItemMeta}>
-                  {celebrationEnabled ? `켜짐 · ${celebrationPhotos.length}장` : "꺼짐"}
-                </Text>
-              </View>
-              <Text style={styles.menuItemArrow}>›</Text>
+              <Text style={styles.menuItemTitle}>이미지 설정</Text>
+              <Text style={styles.menuItemMeta}>
+                {celebrationEnabled ? `켜짐 · ${celebrationPhotos.length}장` : "꺼짐"}
+              </Text>
             </Pressable>
           </View>
-        </SafeAreaView>
+        </Pressable>
       </Modal>
       <Modal
         animationType="slide"
@@ -2657,109 +2635,56 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 20,
   },
-  menuScreen: {
+  menuBackdrop: {
     flex: 1,
-    backgroundColor: "#eef3fb",
-    paddingHorizontal: 22,
-    paddingVertical: 18,
-  },
-  menuHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  menuEyebrow: {
-    color: "#1463ff",
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-    marginBottom: 4,
-  },
-  menuTitle: {
-    color: "#172033",
-    fontSize: 28,
-    fontWeight: "900",
-  },
-  menuCloseButton: {
-    backgroundColor: "#ffffff",
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
-  menuCloseButtonText: {
-    color: "#334155",
-    fontSize: 13,
-    fontWeight: "900",
-  },
-  menuDescription: {
-    color: "#64748b",
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 20,
+    backgroundColor: "rgba(15, 23, 42, 0.08)",
   },
   menuCard: {
+    position: "absolute",
+    right: 16,
+    top: 78,
+    width: 184,
     backgroundColor: "#ffffff",
-    borderRadius: 28,
-    padding: 12,
+    borderRadius: 18,
+    padding: 8,
     shadowColor: "#0f172a",
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 12,
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
   },
   menuItem: {
-    alignItems: "center",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     backgroundColor: "#f8fafc",
-    borderRadius: 22,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+    marginBottom: 6,
   },
   menuItemTitle: {
     color: "#172033",
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 6,
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 4,
   },
   menuItemMeta: {
     color: "#64748b",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  menuItemArrow: {
-    color: "#1463ff",
-    fontSize: 30,
-    fontWeight: "900",
+    fontSize: 13,
+    fontWeight: "600",
   },
   sheetBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.42)",
-    justifyContent: "flex-end",
+    backgroundColor: "#eef3fb",
+    justifyContent: "flex-start",
   },
   sheetCard: {
+    flex: 1,
     backgroundColor: "#ffffff",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 18,
     paddingBottom: 28,
-    maxHeight: "82%",
   },
   sheetHandle: {
-    alignSelf: "center",
-    width: 54,
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: "#d7deea",
-    marginBottom: 14,
+    display: "none",
   },
   sheetHeaderRow: {
     flexDirection: "row",
