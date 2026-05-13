@@ -634,6 +634,7 @@ export default function App() {
   const [workRequests, setWorkRequests] = useState([]);
   const [loadingWorkRequests, setLoadingWorkRequests] = useState(false);
   const [submittingWorkRequest, setSubmittingWorkRequest] = useState(false);
+  const [workRequestCalendarCursor, setWorkRequestCalendarCursor] = useState(createMonthCursor(getSeoulNowInfo().date));
   const [vacationCalendarCursor, setVacationCalendarCursor] = useState(createMonthCursor());
   const [selectedVacationDate, setSelectedVacationDate] = useState(getSeoulNowInfo().date);
   const authRef = useRef(null);
@@ -1211,6 +1212,36 @@ export default function App() {
     () => Math.max(38, Math.min(52, Math.round(windowHeight * 0.062))),
     [windowHeight]
   );
+  const workRequestCalendarData = useMemo(() => {
+    const year = workRequestCalendarCursor.getFullYear();
+    const month = workRequestCalendarCursor.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startDate = new Date(year, month, 1 - firstDay.getDay());
+    const todayKey = getSeoulNowInfo().date;
+    const weeks = [];
+
+    for (let weekIndex = 0; weekIndex < 6; weekIndex += 1) {
+      const week = [];
+      for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + weekIndex * 7 + dayIndex);
+        const dateKey = toDateKey(date);
+        week.push({
+          dateKey,
+          day: date.getDate(),
+          inMonth: date.getMonth() === month,
+          today: dateKey === todayKey,
+          selected: dateKey === workRequestForm.requestDate,
+        });
+      }
+      weeks.push(week);
+    }
+
+    return {
+      title: `${year}년 ${month + 1}월`,
+      weeks,
+    };
+  }, [workRequestCalendarCursor, workRequestForm.requestDate]);
   const vacationCalendarData = useMemo(() => {
     const year = vacationCalendarCursor.getFullYear();
     const month = vacationCalendarCursor.getMonth();
@@ -1437,7 +1468,9 @@ export default function App() {
     setShowVacationInfoModal(false);
     setAttendanceMeta(createInitialAttendanceMeta());
     setCompanySetting(createInitialCompanySetting());
-    setWorkRequestForm(createInitialWorkRequestForm());
+    const initialForm = createInitialWorkRequestForm();
+    setWorkRequestForm(initialForm);
+    setWorkRequestCalendarCursor(createMonthCursor(initialForm.requestDate));
     setWorkRequests([]);
   }
 
@@ -1459,6 +1492,7 @@ export default function App() {
 
   async function handleOpenWorkRequestModal() {
     setShowMenu(false);
+    setWorkRequestCalendarCursor(createMonthCursor(workRequestForm.requestDate));
     setShowWorkRequestModal(true);
     await loadMyWorkRequests();
   }
@@ -1478,6 +1512,19 @@ export default function App() {
       current.getMonth() + offset,
       1
     ));
+  }
+
+  function moveWorkRequestCalendarMonth(offset) {
+    setWorkRequestCalendarCursor((current) => new Date(
+      current.getFullYear(),
+      current.getMonth() + offset,
+      1
+    ));
+  }
+
+  function selectWorkRequestDate(dateKey) {
+    setWorkRequestForm((prev) => ({ ...prev, requestDate: dateKey }));
+    setWorkRequestCalendarCursor(createMonthCursor(dateKey));
   }
 
   function adjustFlexibleWorkMinutes(delta) {
@@ -1527,7 +1574,9 @@ export default function App() {
             : null,
           reason: workRequestForm.reason,
         });
-        setWorkRequestForm(createInitialWorkRequestForm());
+        const initialForm = createInitialWorkRequestForm();
+        setWorkRequestForm(initialForm);
+        setWorkRequestCalendarCursor(createMonthCursor(initialForm.requestDate));
         await loadMyWorkRequests();
         Alert.alert("휴가 신청 완료", response.message || "신청이 등록되었습니다.");
       } catch (error) {
@@ -1904,13 +1953,53 @@ export default function App() {
                   ))}
                 </View>
 
-                <TextInput
-                  value={workRequestForm.requestDate}
-                  onChangeText={(value) => setWorkRequestForm((prev) => ({ ...prev, requestDate: value }))}
-                  placeholder="신청 날짜 (YYYY-MM-DD)"
-                  placeholderTextColor="#8c98ad"
-                  style={[styles.input, styles.workRequestInput]}
-                />
+                <View style={styles.workRequestDatePickerCard}>
+                  <View style={styles.workRequestDatePickerHeader}>
+                    <View>
+                      <Text style={styles.workRequestDatePickerLabel}>신청 날짜</Text>
+                      <Text style={styles.workRequestDatePickerSelected}>{workRequestForm.requestDate}</Text>
+                    </View>
+                    <View style={styles.workRequestDatePickerNav}>
+                      <Pressable onPress={() => moveWorkRequestCalendarMonth(-1)} style={styles.calendarMoveButton}>
+                        <Text style={styles.calendarMoveButtonText}>이전</Text>
+                      </Pressable>
+                      <Text style={styles.workRequestDatePickerMonth}>{workRequestCalendarData.title}</Text>
+                      <Pressable onPress={() => moveWorkRequestCalendarMonth(1)} style={styles.calendarMoveButton}>
+                        <Text style={styles.calendarMoveButtonText}>다음</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                  <View style={styles.vacationCalendarWeekdays}>
+                    {["일", "월", "화", "수", "목", "금", "토"].map((label) => (
+                      <Text key={`request-weekday-${label}`} style={styles.vacationCalendarWeekday}>{label}</Text>
+                    ))}
+                  </View>
+                  <View style={styles.workRequestDatePickerGrid}>
+                    {workRequestCalendarData.weeks.map((week, weekIndex) => (
+                      <View key={`request-week-${weekIndex}`} style={styles.vacationCalendarWeek}>
+                        {week.map((day) => (
+                          <Pressable
+                            key={`request-day-${day.dateKey}`}
+                            onPress={() => selectWorkRequestDate(day.dateKey)}
+                            style={[
+                              styles.workRequestDatePickerDay,
+                              !day.inMonth && styles.vacationCalendarDayMuted,
+                              day.today && styles.vacationCalendarDayToday,
+                              day.selected && styles.vacationCalendarDaySelected,
+                            ]}
+                          >
+                            <Text style={[
+                              styles.vacationCalendarDayText,
+                              day.selected && styles.vacationCalendarDayTextSelected,
+                            ]}>
+                              {day.day}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    ))}
+                  </View>
+                </View>
 
                 {workRequestForm.requestType === "HALF_DAY" ? (
                   <View style={styles.requestTypeRow}>
@@ -2834,6 +2923,58 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 10,
+  },
+  workRequestDatePickerCard: {
+    backgroundColor: "#f8fafc",
+    borderColor: "#e5edf7",
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  workRequestDatePickerHeader: {
+    gap: 12,
+    marginBottom: 12,
+  },
+  workRequestDatePickerLabel: {
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  workRequestDatePickerSelected: {
+    color: "#172033",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  workRequestDatePickerNav: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  workRequestDatePickerMonth: {
+    color: "#172033",
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  workRequestDatePickerGrid: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 6,
+  },
+  workRequestDatePickerDay: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 10,
+    padding: 6,
+    margin: 2,
+    backgroundColor: "#ffffff",
+    borderColor: "#edf2f7",
+    borderWidth: 1,
   },
   workRequestInput: {
     marginBottom: 12,
