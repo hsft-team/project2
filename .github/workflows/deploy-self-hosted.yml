@@ -1,6 +1,9 @@
 name: Deploy To Mini PC
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       deploy_type:
@@ -38,18 +41,18 @@ jobs:
       - name: Show deployment target
         shell: powershell
         run: |
-          Write-Host "Deploy type: ${{ github.event.inputs.deploy_type }}"
-          Write-Host "Branch: ${{ github.event.inputs.branch }}"
-          Write-Host "API base URL: ${{ github.event.inputs.api_base_url }}"
-          Write-Host "Port: ${{ github.event.inputs.port }}"
+          Write-Host "Deploy type: ${{ github.event.inputs.deploy_type || 'deploy' }}"
+          Write-Host "Branch: ${{ github.event.inputs.branch || 'main' }}"
+          Write-Host "API base URL: ${{ github.event.inputs.api_base_url || 'https://api.hsft.io.kr/api' }}"
+          Write-Host "Port: ${{ github.event.inputs.port || '4173' }}"
           Write-Host "Target path: C:\attendance-app\mobile"
 
       - name: Run full deployment
-        if: ${{ github.event.inputs.deploy_type == 'deploy' }}
+        if: ${{ github.event_name == 'push' || github.event.inputs.deploy_type == 'deploy' }}
         shell: powershell
         run: |
           Set-Location "C:\attendance-app\mobile"
-          powershell -ExecutionPolicy Bypass -File ".\scripts\deploy-prod.ps1" -Branch "${{ github.event.inputs.branch }}" -ApiBaseUrl "${{ github.event.inputs.api_base_url }}" -Port "${{ github.event.inputs.port }}"
+          powershell -ExecutionPolicy Bypass -File ".\scripts\deploy-prod.ps1" -Branch "${{ github.event.inputs.branch || 'main' }}" -ApiBaseUrl "${{ github.event.inputs.api_base_url || 'https://api.hsft.io.kr/api' }}" -Port "${{ github.event.inputs.port || '4173' }}"
 
       - name: Run restart only
         if: ${{ github.event.inputs.deploy_type == 'restart' }}
@@ -57,4 +60,3 @@ jobs:
         run: |
           Set-Location "C:\attendance-app\mobile"
           powershell -ExecutionPolicy Bypass -File ".\scripts\restart-prod.ps1"
-
