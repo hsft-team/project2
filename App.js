@@ -748,7 +748,7 @@ export default function App() {
     Alert.alert(title, nextMessage);
   }
 
-  function confirmAction(title, message, onConfirm) {
+  function confirmAction(title, message, onConfirm, confirmStyle = "destructive") {
     if (Platform.OS === "web" && typeof window !== "undefined" && typeof window.confirm === "function") {
       if (window.confirm(`${title}\n\n${message}`)) {
         onConfirm();
@@ -760,7 +760,7 @@ export default function App() {
       { text: "취소", style: "cancel" },
       {
         text: "확인",
-        style: "destructive",
+        style: confirmStyle,
         onPress: onConfirm,
       },
     ]);
@@ -1421,26 +1421,42 @@ export default function App() {
       return;
     }
 
-    try {
-      setSubmittingWorkRequest(true);
-      const response = await createWorkRequest({
-        token: auth.token,
-        requestType: workRequestForm.requestType,
-        requestDate: workRequestForm.requestDate,
-        halfDayType: workRequestForm.requestType === "HALF_DAY" ? workRequestForm.halfDayType : null,
-        earlyLeaveMinutes: workRequestForm.requestType === "EARLY_LEAVE"
-          ? Number(workRequestForm.earlyLeaveMinutes || 0)
-          : null,
-        reason: workRequestForm.reason,
-      });
-      setWorkRequestForm(createInitialWorkRequestForm());
-      await loadMyWorkRequests();
-      Alert.alert("휴가 신청 완료", response.message || "신청이 등록되었습니다.");
-    } catch (error) {
-      showError("휴가 신청 실패", error.message || "잠시 후 다시 시도해 주세요.");
-    } finally {
-      setSubmittingWorkRequest(false);
+    const requestTypeLabel = getWorkRequestTypeLabel(workRequestForm.requestType);
+    const requestDetails = [];
+    requestDetails.push(`날짜: ${workRequestForm.requestDate}`);
+    requestDetails.push(`유형: ${requestTypeLabel}`);
+    if (workRequestForm.requestType === "HALF_DAY") {
+      requestDetails.push(`구분: ${workRequestForm.halfDayType === "MORNING" ? "오전 반차" : "오후 반차"}`);
     }
+    if (workRequestForm.requestType === "EARLY_LEAVE") {
+      requestDetails.push(`시간: ${workRequestForm.earlyLeaveMinutes}분`);
+    }
+    if (workRequestForm.reason.trim()) {
+      requestDetails.push(`사유: ${workRequestForm.reason.trim()}`);
+    }
+
+    confirmAction("휴가 신청 확인", `${requestDetails.join("\n")}\n\n이 내용으로 신청할까요?`, async () => {
+      try {
+        setSubmittingWorkRequest(true);
+        const response = await createWorkRequest({
+          token: auth.token,
+          requestType: workRequestForm.requestType,
+          requestDate: workRequestForm.requestDate,
+          halfDayType: workRequestForm.requestType === "HALF_DAY" ? workRequestForm.halfDayType : null,
+          earlyLeaveMinutes: workRequestForm.requestType === "EARLY_LEAVE"
+            ? Number(workRequestForm.earlyLeaveMinutes || 0)
+            : null,
+          reason: workRequestForm.reason,
+        });
+        setWorkRequestForm(createInitialWorkRequestForm());
+        await loadMyWorkRequests();
+        Alert.alert("휴가 신청 완료", response.message || "신청이 등록되었습니다.");
+      } catch (error) {
+        showError("휴가 신청 실패", error.message || "잠시 후 다시 시도해 주세요.");
+      } finally {
+        setSubmittingWorkRequest(false);
+      }
+    }, "default");
   }
 
   async function handleCancelWorkRequest(requestId) {
