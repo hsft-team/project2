@@ -26,13 +26,16 @@ import {
 } from "./src/constants/company";
 import AttendanceMap from "./src/components/AttendanceMap";
 import {
+  cancelWorkRequest,
   checkIn,
   checkOut,
   changePassword,
+  createWorkRequest,
   DEMO_MODE,
   getCompanySetting,
   getPublicCompanySetting,
   getTodayAttendance,
+  getWorkRequests,
   login,
   previewInvite,
 } from "./src/services/api";
@@ -81,7 +84,18 @@ function createInitialCompanySetting(overrides = {}) {
     allowedRadiusMeters: COMPANY_RADIUS_METERS,
     noticeMessage: "",
     mobileSkinKey: "classic",
+    workRequestApprovalRequired: true,
     ...overrides,
+  };
+}
+
+function createInitialWorkRequestForm() {
+  return {
+    requestType: "VACATION",
+    requestDate: getSeoulNowInfo().date,
+    halfDayType: "MORNING",
+    earlyLeaveMinutes: "30",
+    reason: "",
   };
 }
 
@@ -365,6 +379,19 @@ function formatTime(dateString) {
   });
 }
 
+function formatDateTime(dateString) {
+  if (!dateString) {
+    return "-";
+  }
+
+  return new Date(dateString).toLocaleString("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function isAuthErrorMessage(message) {
   if (!message) {
     return false;
@@ -491,6 +518,7 @@ export default function App() {
   const [showCheckOutConfirm, setShowCheckOutConfirm] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showImageSettings, setShowImageSettings] = useState(false);
+  const [showWorkRequestModal, setShowWorkRequestModal] = useState(false);
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [locationPermission, setLocationPermission] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
@@ -511,6 +539,10 @@ export default function App() {
   const [showCelebrationPhoto, setShowCelebrationPhoto] = useState(false);
   const [bottomLayerHeight, setBottomLayerHeight] = useState(0);
   const [mapRecenterRequest, setMapRecenterRequest] = useState(0);
+  const [workRequestForm, setWorkRequestForm] = useState(createInitialWorkRequestForm());
+  const [workRequests, setWorkRequests] = useState([]);
+  const [loadingWorkRequests, setLoadingWorkRequests] = useState(false);
+  const [submittingWorkRequest, setSubmittingWorkRequest] = useState(false);
   const authRef = useRef(null);
 
   useEffect(() => {
@@ -1238,8 +1270,76 @@ export default function App() {
     setConfirmPasswordInput("");
     setAttendance(INITIAL_STATUS);
     setShowNoticeModal(false);
+    setShowWorkRequestModal(false);
     setAttendanceMeta(createInitialAttendanceMeta());
     setCompanySetting(createInitialCompanySetting());
+    setWorkRequestForm(createInitialWorkRequestForm());
+    setWorkRequests([]);
+  }
+
+  async function loadMyWorkRequests() {
+    if (!auth?.token) {
+      return;
+    }
+
+    try {
+      setLoadingWorkRequests(true);
+      const response = await getWorkRequests({ token: auth.token });
+      setWorkRequests(response.requests || []);
+    } catch (error) {
+      showError("근무 신청 조회 실패", error.message || "잠시 후 다시 시도해 주세요.");
+    } finally {
+      setLoadingWorkRequests(false);
+    }
+  }
+
+  async function handleOpenWorkRequestModal() {
+    setShowMenu(false);
+    setShowWorkRequestModal(true);
+    await loadMyWorkRequests();
+  }
+
+  async function handleSubmitWorkRequest() {
+    if (!auth?.token) {
+      return;
+    }
+
+    try {
+      setSubmittingWorkRequest(true);
+      const response = await createWorkRequest({
+        token: auth.token,
+        requestType: workRequestForm.requestType,
+        requestDate: workRequestForm.requestDate,
+        halfDayType: workRequestForm.requestType === "HALF_DAY" ? workRequestForm.halfDayType : null,
+        earlyLeaveMinutes: workRequestForm.requestType === "EARLY_LEAVE"
+          ? Number(workRequestForm.earlyLeaveMinutes || 0)
+          : null,
+        reason: workRequestForm.reason,
+      });
+      setWorkRequestForm(createInitialWorkRequestForm());
+      await loadMyWorkRequests();
+      Alert.alert("근무 신청 완료", response.message || "근무 신청이 등록되었습니다.");
+    } catch (error) {
+      showError("근무 신청 실패", error.message || "잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSubmittingWorkRequest(false);
+    }
+  }
+
+  async function handleCancelWorkRequest(requestId) {
+    if (!auth?.token) {
+      return;
+    }
+
+    confirmAction("근무 신청 취소", "이 신청을 취소하시겠어요?", async () => {
+      try {
+        const response = await cancelWorkRequest({ token: auth.token, requestId });
+        await loadMyWorkRequests();
+        Alert.alert("신청 취소 완료", response.message || "근무 신청이 취소되었습니다.");
+      } catch (error) {
+        showError("신청 취소 실패", error.message || "잠시 후 다시 시도해 주세요.");
+      }
+    });
   }
 
   function handleOpenInviteInApp() {
@@ -1509,6 +1609,15 @@ export default function App() {
         <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
           <View style={styles.menuCard}>
             <Pressable
+              onPress={handleOpenWorkRequestModal}
+              style={styles.menuItem}
+            >
+              <Text style={styles.menuItemTitle}>근무 신청</Text>
+              <Text style={styles.menuItemMeta}>
+                {companySetting.workRequestApprovalRequired ? "승인형" : "즉시 확정"}
+              </Text>
+            </Pressable>
+            <Pressable
               onPress={() => {
                 setShowMenu(false);
                 setShowImageSettings(true);
@@ -1522,6 +1631,177 @@ export default function App() {
             </Pressable>
           </View>
         </Pressable>
+      </Modal>
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showWorkRequestModal}
+        onRequestClose={() => setShowWorkRequestModal(false)}
+      >
+        <View style={styles.sheetBackdrop}>
+          <View style={styles.sheetCard}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeaderRow}>
+              <View style={styles.sheetHeaderTextWrap}>
+                <Text style={styles.sheetTitle}>근무 신청</Text>
+                <Text style={styles.sheetDescription}>
+                  햄버거 메뉴에서 휴가, 반차, 조기퇴근 신청을 등록하고 내역을 확인할 수 있습니다.
+                </Text>
+              </View>
+              <Pressable onPress={() => setShowWorkRequestModal(false)} style={styles.sheetCloseButton}>
+                <Text style={styles.sheetCloseButtonText}>닫기</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.workRequestScroll} contentContainerStyle={styles.workRequestScrollContent}>
+              <View style={styles.workRequestNoticeCard}>
+                <Text style={styles.workRequestNoticeTitle}>처리 방식</Text>
+                <Text style={styles.workRequestNoticeText}>
+                  {companySetting.workRequestApprovalRequired
+                    ? "현재 회사 설정은 관리자 승인형입니다. 신청 후 승인되면 최종 확정됩니다."
+                    : "현재 회사 설정은 즉시 확정형입니다. 신청 즉시 반영됩니다."}
+                </Text>
+              </View>
+
+              <View style={styles.workRequestSection}>
+                <Text style={styles.workRequestSectionTitle}>신청하기</Text>
+                <View style={styles.requestTypeRow}>
+                  {["VACATION", "HALF_DAY", "EARLY_LEAVE"].map((type) => (
+                    <Pressable
+                      key={type}
+                      onPress={() => setWorkRequestForm((prev) => ({ ...prev, requestType: type }))}
+                      style={[
+                        styles.requestTypeChip,
+                        workRequestForm.requestType === type && styles.requestTypeChipActive,
+                      ]}
+                    >
+                      <Text style={[
+                        styles.requestTypeChipText,
+                        workRequestForm.requestType === type && styles.requestTypeChipTextActive,
+                      ]}>
+                        {type === "VACATION" ? "휴가" : type === "HALF_DAY" ? "반차" : "조기퇴근"}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <TextInput
+                  value={workRequestForm.requestDate}
+                  onChangeText={(value) => setWorkRequestForm((prev) => ({ ...prev, requestDate: value }))}
+                  placeholder="신청 날짜 (YYYY-MM-DD)"
+                  placeholderTextColor="#8c98ad"
+                  style={[styles.input, styles.workRequestInput]}
+                />
+
+                {workRequestForm.requestType === "HALF_DAY" ? (
+                  <View style={styles.requestTypeRow}>
+                    {["MORNING", "AFTERNOON"].map((type) => (
+                      <Pressable
+                        key={type}
+                        onPress={() => setWorkRequestForm((prev) => ({ ...prev, halfDayType: type }))}
+                        style={[
+                          styles.requestTypeChip,
+                          workRequestForm.halfDayType === type && styles.requestTypeChipActive,
+                        ]}
+                      >
+                        <Text style={[
+                          styles.requestTypeChipText,
+                          workRequestForm.halfDayType === type && styles.requestTypeChipTextActive,
+                        ]}>
+                          {type === "MORNING" ? "오전 반차" : "오후 반차"}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+
+                {workRequestForm.requestType === "EARLY_LEAVE" ? (
+                  <View style={styles.requestTypeRow}>
+                    {["30", "60", "90", "120", "180", "240"].map((minutes) => (
+                      <Pressable
+                        key={minutes}
+                        onPress={() => setWorkRequestForm((prev) => ({ ...prev, earlyLeaveMinutes: minutes }))}
+                        style={[
+                          styles.requestTypeChip,
+                          workRequestForm.earlyLeaveMinutes === minutes && styles.requestTypeChipActive,
+                        ]}
+                      >
+                        <Text style={[
+                          styles.requestTypeChipText,
+                          workRequestForm.earlyLeaveMinutes === minutes && styles.requestTypeChipTextActive,
+                        ]}>
+                          {minutes}분
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+
+                <TextInput
+                  value={workRequestForm.reason}
+                  onChangeText={(value) => setWorkRequestForm((prev) => ({ ...prev, reason: value }))}
+                  placeholder="사유를 입력해 주세요. (선택)"
+                  placeholderTextColor="#8c98ad"
+                  multiline
+                  style={[styles.input, styles.workRequestInput, styles.workRequestReasonInput]}
+                />
+
+                <Pressable
+                  disabled={submittingWorkRequest}
+                  onPress={handleSubmitWorkRequest}
+                  style={[styles.primaryButton, submittingWorkRequest && styles.buttonDisabled]}
+                >
+                  {submittingWorkRequest ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>신청 등록</Text>
+                  )}
+                </Pressable>
+              </View>
+
+              <View style={styles.workRequestSection}>
+                <View style={styles.workRequestListHeader}>
+                  <Text style={styles.workRequestSectionTitle}>내 신청 목록</Text>
+                  <Pressable onPress={loadMyWorkRequests}>
+                    <Text style={styles.workRequestRefresh}>새로고침</Text>
+                  </Pressable>
+                </View>
+
+                {loadingWorkRequests ? (
+                  <ActivityIndicator color="#1463ff" />
+                ) : workRequests.length === 0 ? (
+                  <Text style={styles.workRequestEmpty}>등록된 신청이 없습니다.</Text>
+                ) : (
+                  workRequests.map((request) => (
+                    <View key={request.id} style={styles.workRequestCard}>
+                      <View style={styles.workRequestCardHeader}>
+                        <Text style={styles.workRequestCardTitle}>{request.requestTypeLabel}</Text>
+                        <Text style={styles.workRequestStatus}>{request.statusLabel}</Text>
+                      </View>
+                      <Text style={styles.workRequestCardMeta}>
+                        {request.requestDate}
+                        {request.halfDayTypeLabel ? ` · ${request.halfDayTypeLabel}` : ""}
+                        {request.earlyLeaveMinutes ? ` · ${request.earlyLeaveMinutes}분 조기퇴근` : ""}
+                      </Text>
+                      <Text style={styles.workRequestCardReason}>{request.reason || "사유 없음"}</Text>
+                      <Text style={styles.workRequestCardMeta}>등록 {formatDateTime(request.createdAt)}</Text>
+                      {request.reviewedByName ? (
+                        <Text style={styles.workRequestCardMeta}>
+                          검토 {request.reviewedByName} · {formatDateTime(request.reviewedAt)}
+                        </Text>
+                      ) : null}
+                      {request.cancelable ? (
+                        <Pressable onPress={() => handleCancelWorkRequest(request.id)} style={styles.workRequestCancelButton}>
+                          <Text style={styles.workRequestCancelButtonText}>신청 취소</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ))
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
       <Modal
         animationType="slide"
@@ -2058,6 +2338,135 @@ const styles = StyleSheet.create({
   },
   sheetCloseButtonText: {
     color: "#334155",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  workRequestScroll: {
+    marginHorizontal: -4,
+  },
+  workRequestScrollContent: {
+    paddingHorizontal: 4,
+    paddingBottom: 10,
+  },
+  workRequestNoticeCard: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 16,
+  },
+  workRequestNoticeTitle: {
+    color: "#172033",
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  workRequestNoticeText: {
+    color: "#64748b",
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  workRequestSection: {
+    marginBottom: 18,
+  },
+  workRequestSectionTitle: {
+    color: "#172033",
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 12,
+  },
+  requestTypeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+  requestTypeChip: {
+    backgroundColor: "#edf1f7",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  requestTypeChipActive: {
+    backgroundColor: "#1463ff",
+  },
+  requestTypeChipText: {
+    color: "#475569",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  requestTypeChipTextActive: {
+    color: "#ffffff",
+  },
+  workRequestInput: {
+    marginBottom: 12,
+  },
+  workRequestReasonInput: {
+    minHeight: 92,
+    textAlignVertical: "top",
+  },
+  workRequestListHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  workRequestRefresh: {
+    color: "#1463ff",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  workRequestEmpty: {
+    color: "#64748b",
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  workRequestCard: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 10,
+  },
+  workRequestCardHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 6,
+  },
+  workRequestCardTitle: {
+    color: "#172033",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  workRequestStatus: {
+    color: "#1463ff",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  workRequestCardMeta: {
+    color: "#64748b",
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  workRequestCardReason: {
+    color: "#334155",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  workRequestCancelButton: {
+    alignSelf: "flex-start",
+    backgroundColor: "#eef2ff",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 6,
+  },
+  workRequestCancelButtonText: {
+    color: "#4338ca",
     fontSize: 13,
     fontWeight: "800",
   },

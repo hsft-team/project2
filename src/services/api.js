@@ -90,6 +90,28 @@ function normalizeCompanySetting(data) {
     lateAfterTime: data.lateAfterTime,
     noticeMessage: data.noticeMessage || "",
     mobileSkinKey: data.mobileSkinKey || "classic",
+    workRequestApprovalRequired: data.workRequestApprovalRequired !== false,
+  };
+}
+
+function normalizeWorkRequest(data) {
+  return {
+    id: data?.id || null,
+    requestType: data?.requestType || "",
+    requestTypeLabel: data?.requestTypeLabel || "",
+    status: data?.status || "",
+    statusLabel: data?.statusLabel || "",
+    requestDate: data?.requestDate || "",
+    halfDayType: data?.halfDayType || null,
+    halfDayTypeLabel: data?.halfDayTypeLabel || null,
+    earlyLeaveMinutes: data?.earlyLeaveMinutes || null,
+    reason: data?.reason || "",
+    cancelable: Boolean(data?.cancelable),
+    reviewedByEmployeeCode: data?.reviewedByEmployeeCode || null,
+    reviewedByName: data?.reviewedByName || null,
+    reviewedAt: data?.reviewedAt || null,
+    reviewNote: data?.reviewNote || "",
+    createdAt: data?.createdAt || null,
   };
 }
 
@@ -238,6 +260,7 @@ export async function getCompanySetting({ token }) {
       allowedRadiusMeters: 100,
       lateAfterTime: "09:00:00",
       mobileSkinKey: "classic",
+      workRequestApprovalRequired: true,
     });
   }
 
@@ -266,6 +289,7 @@ export async function getPublicCompanySetting() {
       allowedRadiusMeters: 100,
       lateAfterTime: "09:00:00",
       mobileSkinKey: "classic",
+      workRequestApprovalRequired: true,
     });
   }
 
@@ -337,5 +361,102 @@ export async function checkOut({ token, latitude, longitude, accuracyMeters, cap
     };
   } catch (error) {
     throw new Error(getErrorMessage(error, "퇴근 처리에 실패했습니다."));
+  }
+}
+
+export async function getWorkRequests({ token }) {
+  if (DEMO_MODE) {
+    return {
+      approvalRequired: true,
+      requests: [],
+    };
+  }
+
+  try {
+    const response = await api.get("/attendance/work-requests", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return {
+      approvalRequired: response.data?.approvalRequired !== false,
+      requests: Array.isArray(response.data?.requests)
+        ? response.data.requests.map(normalizeWorkRequest)
+        : [],
+    };
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "근무 신청 목록을 불러오지 못했습니다."));
+  }
+}
+
+export async function createWorkRequest({ token, requestType, requestDate, halfDayType, earlyLeaveMinutes, reason }) {
+  if (DEMO_MODE) {
+    return {
+      message: "데모 모드에서 근무 신청이 등록되었습니다.",
+      request: normalizeWorkRequest({
+        id: Date.now(),
+        requestType,
+        requestTypeLabel: requestType,
+        status: "PENDING",
+        statusLabel: "승인 대기",
+        requestDate,
+        halfDayType,
+        halfDayTypeLabel: halfDayType,
+        earlyLeaveMinutes,
+        reason,
+        cancelable: true,
+        createdAt: new Date().toISOString(),
+      }),
+    };
+  }
+
+  try {
+    const response = await api.post(
+      "/attendance/work-requests",
+      { requestType, requestDate, halfDayType, earlyLeaveMinutes, reason },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return {
+      message: response.data?.message || "근무 신청이 등록되었습니다.",
+      request: normalizeWorkRequest(response.data?.request),
+    };
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "근무 신청 등록에 실패했습니다."));
+  }
+}
+
+export async function cancelWorkRequest({ token, requestId }) {
+  if (DEMO_MODE) {
+    return {
+      message: "데모 모드에서 근무 신청이 취소되었습니다.",
+      request: normalizeWorkRequest({
+        id: requestId,
+        status: "CANCELED",
+        statusLabel: "취소",
+        cancelable: false,
+      }),
+    };
+  }
+
+  try {
+    const response = await api.post(
+      `/attendance/work-requests/${requestId}/cancel`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return {
+      message: response.data?.message || "근무 신청이 취소되었습니다.",
+      request: normalizeWorkRequest(response.data?.request),
+    };
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "근무 신청 취소에 실패했습니다."));
   }
 }
