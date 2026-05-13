@@ -98,6 +98,8 @@ function normalizeWorkRequest(data) {
   const requestType = data?.requestType || "";
   const requestTypeLabel = requestType === "EARLY_LEAVE"
     ? "유연근무"
+    : requestType === "SPECIAL_LEAVE"
+      ? "경조사"
     : data?.requestTypeLabel || "";
   return {
     id: data?.id || null,
@@ -108,6 +110,8 @@ function normalizeWorkRequest(data) {
     requestDate: data?.requestDate || "",
     halfDayType: data?.halfDayType || null,
     halfDayTypeLabel: data?.halfDayTypeLabel || null,
+    occasionType: data?.occasionType || null,
+    occasionTypeLabel: data?.occasionTypeLabel || null,
     earlyLeaveMinutes: data?.earlyLeaveMinutes || null,
     reason: data?.reason || "",
     cancelable: Boolean(data?.cancelable),
@@ -399,7 +403,7 @@ export async function getWorkRequests({ token }) {
   }
 }
 
-export async function createWorkRequest({ token, requestType, requestDate, halfDayType, earlyLeaveMinutes, reason }) {
+export async function createWorkRequest({ token, requestType, requestDate, halfDayType, occasionType, earlyLeaveMinutes, reason }) {
   if (DEMO_MODE) {
     return {
       message: "데모 모드에서 신청이 등록되었습니다.",
@@ -412,6 +416,8 @@ export async function createWorkRequest({ token, requestType, requestDate, halfD
         requestDate,
         halfDayType,
         halfDayTypeLabel: halfDayType,
+        occasionType,
+        occasionTypeLabel: occasionType,
         earlyLeaveMinutes,
         reason,
         cancelable: true,
@@ -423,7 +429,7 @@ export async function createWorkRequest({ token, requestType, requestDate, halfD
   try {
     const response = await api.post(
       "/attendance/work-requests",
-      { requestType, requestDate, halfDayType, earlyLeaveMinutes, reason },
+      { requestType, requestDate, halfDayType, occasionType, earlyLeaveMinutes, reason },
       {
         headers: {
           Authorization: `Bearer ${token}`,

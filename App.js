@@ -94,6 +94,7 @@ function createInitialWorkRequestForm() {
     requestType: "VACATION",
     requestDate: getSeoulNowInfo().date,
     halfDayType: "MORNING",
+    occasionType: "SELF_MARRIAGE",
     earlyLeaveMinutes: "30",
     reason: "",
   };
@@ -107,8 +108,31 @@ function getWorkRequestTypeLabel(type) {
       return "반차";
     case "EARLY_LEAVE":
       return "유연근무";
+    case "SPECIAL_LEAVE":
+      return "경조사";
     default:
       return "신청";
+  }
+}
+
+function getOccasionTypeLabel(type) {
+  switch (type) {
+    case "SELF_MARRIAGE":
+      return "본인 결혼";
+    case "CHILD_MARRIAGE":
+      return "자녀 결혼";
+    case "SPOUSE_CHILDBIRTH":
+      return "배우자 출산";
+    case "FAMILY_DEATH":
+      return "가족 사망";
+    case "GRANDPARENT_DEATH":
+      return "조부모 사망";
+    case "SIBLING_DEATH":
+      return "형제자매 사망";
+    case "OTHER":
+      return "기타 경조사";
+    default:
+      return "";
   }
 }
 
@@ -116,6 +140,9 @@ function getWorkRequestDetailText(request) {
   const details = [];
   if (request.halfDayTypeLabel) {
     details.push(request.halfDayTypeLabel);
+  }
+  if (request.occasionTypeLabel) {
+    details.push(request.occasionTypeLabel);
   }
   if (request.earlyLeaveMinutes) {
     details.push(`${request.earlyLeaveMinutes}분 유연근무`);
@@ -1428,6 +1455,9 @@ export default function App() {
     if (workRequestForm.requestType === "HALF_DAY") {
       requestDetails.push(`구분: ${workRequestForm.halfDayType === "MORNING" ? "오전 반차" : "오후 반차"}`);
     }
+    if (workRequestForm.requestType === "SPECIAL_LEAVE") {
+      requestDetails.push(`경조사: ${getOccasionTypeLabel(workRequestForm.occasionType)}`);
+    }
     if (workRequestForm.requestType === "EARLY_LEAVE") {
       requestDetails.push(`시간: ${workRequestForm.earlyLeaveMinutes}분`);
     }
@@ -1443,6 +1473,7 @@ export default function App() {
           requestType: workRequestForm.requestType,
           requestDate: workRequestForm.requestDate,
           halfDayType: workRequestForm.requestType === "HALF_DAY" ? workRequestForm.halfDayType : null,
+          occasionType: workRequestForm.requestType === "SPECIAL_LEAVE" ? workRequestForm.occasionType : null,
           earlyLeaveMinutes: workRequestForm.requestType === "EARLY_LEAVE"
             ? Number(workRequestForm.earlyLeaveMinutes || 0)
             : null,
@@ -1785,7 +1816,7 @@ export default function App() {
               <View style={styles.sheetHeaderTextWrap}>
                 <Text style={styles.sheetTitle}>휴가 신청</Text>
                 <Text style={styles.sheetDescription}>
-                  휴가, 반차, 유연근무 신청을 등록할 수 있습니다. 반차를 사용한 날에도 유연근무를 함께 신청할 수 있습니다.
+                  휴가, 반차, 경조사, 유연근무 신청을 등록할 수 있습니다. 반차를 사용한 날에도 유연근무를 함께 신청할 수 있습니다.
                 </Text>
               </View>
               <Pressable onPress={() => setShowWorkRequestModal(false)} style={styles.sheetCloseButton}>
@@ -1806,7 +1837,7 @@ export default function App() {
               <View style={styles.workRequestSection}>
                 <Text style={styles.workRequestSectionTitle}>신청하기</Text>
                 <View style={styles.requestTypeRow}>
-                  {["VACATION", "HALF_DAY", "EARLY_LEAVE"].map((type) => (
+                  {["VACATION", "HALF_DAY", "SPECIAL_LEAVE", "EARLY_LEAVE"].map((type) => (
                     <Pressable
                       key={type}
                       onPress={() => setWorkRequestForm((prev) => ({ ...prev, requestType: type }))}
@@ -1849,6 +1880,36 @@ export default function App() {
                           workRequestForm.halfDayType === type && styles.requestTypeChipTextActive,
                         ]}>
                           {type === "MORNING" ? "오전 반차" : "오후 반차"}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+
+                {workRequestForm.requestType === "SPECIAL_LEAVE" ? (
+                  <View style={styles.requestTypeRow}>
+                    {[
+                      "SELF_MARRIAGE",
+                      "CHILD_MARRIAGE",
+                      "SPOUSE_CHILDBIRTH",
+                      "FAMILY_DEATH",
+                      "GRANDPARENT_DEATH",
+                      "SIBLING_DEATH",
+                      "OTHER",
+                    ].map((type) => (
+                      <Pressable
+                        key={type}
+                        onPress={() => setWorkRequestForm((prev) => ({ ...prev, occasionType: type }))}
+                        style={[
+                          styles.requestTypeChip,
+                          workRequestForm.occasionType === type && styles.requestTypeChipActive,
+                        ]}
+                      >
+                        <Text style={[
+                          styles.requestTypeChipText,
+                          workRequestForm.occasionType === type && styles.requestTypeChipTextActive,
+                        ]}>
+                          {getOccasionTypeLabel(type)}
                         </Text>
                       </Pressable>
                     ))}
@@ -1959,7 +2020,7 @@ export default function App() {
               <View style={styles.sheetHeaderTextWrap}>
                 <Text style={styles.sheetTitle}>내 휴가 정보</Text>
                 <Text style={styles.sheetDescription}>
-                  휴가, 반차, 유연근무 신청 내역을 월별 달력으로 확인할 수 있습니다.
+                  휴가, 반차, 경조사, 유연근무 신청 내역을 월별 달력으로 확인할 수 있습니다.
                 </Text>
               </View>
               <Pressable onPress={() => setShowVacationInfoModal(false)} style={styles.sheetCloseButton}>
