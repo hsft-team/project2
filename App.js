@@ -1813,28 +1813,47 @@ export default function App() {
         </View>
       </Modal>
       <Modal
-        animationType="fade"
-        transparent
+        animationType="slide"
         visible={showMenu}
         onRequestClose={() => setShowMenu(false)}
       >
-        <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
+        <SafeAreaView style={styles.menuScreen}>
+          <View style={styles.menuHeader}>
+            <View>
+              <Text style={styles.menuEyebrow}>MENU</Text>
+              <Text style={styles.menuTitle}>전체 메뉴</Text>
+            </View>
+            <Pressable onPress={() => setShowMenu(false)} style={styles.menuCloseButton}>
+              <Text style={styles.menuCloseButtonText}>닫기</Text>
+            </Pressable>
+          </View>
+
+          <Text style={styles.menuDescription}>
+            휴가 신청과 내 휴가 현황, 이미지 설정을 이곳에서 관리할 수 있습니다.
+          </Text>
+
           <View style={styles.menuCard}>
             <Pressable
               onPress={handleOpenWorkRequestModal}
               style={styles.menuItem}
             >
-              <Text style={styles.menuItemTitle}>휴가 신청</Text>
-              <Text style={styles.menuItemMeta}>
-                {companySetting.workRequestApprovalRequired ? "승인형" : "즉시 확정"}
-              </Text>
+              <View>
+                <Text style={styles.menuItemTitle}>휴가 신청</Text>
+                <Text style={styles.menuItemMeta}>
+                  {companySetting.workRequestApprovalRequired ? "관리자 승인 후 확정" : "신청 즉시 확정"}
+                </Text>
+              </View>
+              <Text style={styles.menuItemArrow}>›</Text>
             </Pressable>
             <Pressable
               onPress={handleOpenVacationInfoModal}
               style={styles.menuItem}
             >
-              <Text style={styles.menuItemTitle}>내 휴가 정보</Text>
-              <Text style={styles.menuItemMeta}>달력으로 보기</Text>
+              <View>
+                <Text style={styles.menuItemTitle}>내 휴가 정보</Text>
+                <Text style={styles.menuItemMeta}>달력과 사용 일수 확인</Text>
+              </View>
+              <Text style={styles.menuItemArrow}>›</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -1843,13 +1862,16 @@ export default function App() {
               }}
               style={styles.menuItem}
             >
-              <Text style={styles.menuItemTitle}>이미지 설정</Text>
-              <Text style={styles.menuItemMeta}>
-                {celebrationEnabled ? `켜짐 · ${celebrationPhotos.length}장` : "꺼짐"}
-              </Text>
+              <View>
+                <Text style={styles.menuItemTitle}>이미지 설정</Text>
+                <Text style={styles.menuItemMeta}>
+                  {celebrationEnabled ? `켜짐 · ${celebrationPhotos.length}장` : "꺼짐"}
+                </Text>
+              </View>
+              <Text style={styles.menuItemArrow}>›</Text>
             </Pressable>
           </View>
-        </Pressable>
+        </SafeAreaView>
       </Modal>
       <Modal
         animationType="slide"
@@ -2635,41 +2657,87 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 20,
   },
-  menuBackdrop: {
+  menuScreen: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.08)",
+    backgroundColor: "#eef3fb",
+    paddingHorizontal: 22,
+    paddingVertical: 18,
+  },
+  menuHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  menuEyebrow: {
+    color: "#1463ff",
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  menuTitle: {
+    color: "#172033",
+    fontSize: 28,
+    fontWeight: "900",
+  },
+  menuCloseButton: {
+    backgroundColor: "#ffffff",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  menuCloseButtonText: {
+    color: "#334155",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  menuDescription: {
+    color: "#64748b",
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 20,
   },
   menuCard: {
-    position: "absolute",
-    right: 16,
-    top: 78,
-    width: 184,
     backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 8,
+    borderRadius: 28,
+    padding: 12,
     shadowColor: "#0f172a",
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 12,
   },
   menuItem: {
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    alignItems: "center",
     backgroundColor: "#f8fafc",
-    marginBottom: 6,
+    borderRadius: 22,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
   },
   menuItemTitle: {
     color: "#172033",
-    fontSize: 15,
-    fontWeight: "800",
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 6,
   },
   menuItemMeta: {
     color: "#64748b",
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  menuItemArrow: {
+    color: "#1463ff",
+    fontSize: 30,
+    fontWeight: "900",
   },
   sheetBackdrop: {
     flex: 1,
