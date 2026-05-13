@@ -385,7 +385,9 @@ export async function getWorkRequests({ token }) {
     return {
       approvalRequired: response.data?.approvalRequired !== false,
       requests: Array.isArray(response.data?.requests)
-        ? response.data.requests.map(normalizeWorkRequest)
+        ? response.data.requests
+            .map(normalizeWorkRequest)
+            .filter((request) => request.status !== "CANCELED")
         : [],
     };
   } catch (error) {
