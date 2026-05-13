@@ -1893,13 +1893,6 @@ export default function App() {
               </Text>
             </Pressable>
             <Pressable
-              onPress={handleOpenVacationInfoModal}
-              style={styles.menuItem}
-            >
-              <Text style={styles.menuItemTitle}>내 휴가 정보</Text>
-              <Text style={styles.menuItemMeta}>달력으로 보기</Text>
-            </Pressable>
-            <Pressable
               onPress={() => {
                 setShowMenu(false);
                 setShowImageSettings(true);
@@ -1943,6 +1936,26 @@ export default function App() {
                     ? "현재 회사 설정은 관리자 승인형입니다. 신청 후 승인되면 최종 확정됩니다."
                     : "현재 회사 설정은 즉시 확정형입니다. 신청 즉시 반영됩니다."}
                 </Text>
+              </View>
+
+              <View style={styles.vacationUsageSummaryCard}>
+                <Text style={styles.vacationUsageSummaryTitle}>내가 사용한 휴가</Text>
+                <View style={styles.vacationUsageSummaryRow}>
+                  <View style={styles.vacationUsageSummaryItem}>
+                    <Text style={styles.vacationUsageSummaryLabel}>연차사용</Text>
+                    <Text style={styles.vacationUsageSummaryValue}>
+                      {formatVacationDays(vacationUsageSummary.annualLeaveDays)}
+                    </Text>
+                    <Text style={styles.vacationUsageSummaryMeta}>일반휴가 + 반차</Text>
+                  </View>
+                  <View style={styles.vacationUsageSummaryItem}>
+                    <Text style={styles.vacationUsageSummaryLabel}>기타</Text>
+                    <Text style={styles.vacationUsageSummaryValue}>
+                      {formatVacationDays(vacationUsageSummary.otherLeaveDays)}
+                    </Text>
+                    <Text style={styles.vacationUsageSummaryMeta}>경조사</Text>
+                  </View>
+                </View>
               </View>
 
               <View style={styles.workRequestSection}>
