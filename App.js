@@ -1919,9 +1919,6 @@ export default function App() {
             <View style={styles.sheetHeaderRow}>
               <View style={styles.sheetHeaderTextWrap}>
                 <Text style={styles.sheetTitle}>휴가 신청</Text>
-                <Text style={styles.sheetDescription}>
-                  휴가, 반차, 경조사, 유연근무 신청을 등록할 수 있습니다. 반차를 사용한 날에도 유연근무를 함께 신청할 수 있습니다.
-                </Text>
               </View>
               <Pressable onPress={() => setShowWorkRequestModal(false)} style={styles.sheetCloseButton}>
                 <Text style={styles.sheetCloseButtonText}>닫기</Text>
@@ -1929,15 +1926,6 @@ export default function App() {
             </View>
 
             <ScrollView style={styles.workRequestScroll} contentContainerStyle={styles.workRequestScrollContent}>
-              <View style={styles.workRequestNoticeCard}>
-                <Text style={styles.workRequestNoticeTitle}>처리 방식</Text>
-                <Text style={styles.workRequestNoticeText}>
-                  {companySetting.workRequestApprovalRequired
-                    ? "현재 회사 설정은 관리자 승인형입니다. 신청 후 승인되면 최종 확정됩니다."
-                    : "현재 회사 설정은 즉시 확정형입니다. 신청 즉시 반영됩니다."}
-                </Text>
-              </View>
-
               <View style={styles.vacationUsageSummaryCard}>
                 <Text style={styles.vacationUsageSummaryTitle}>내가 사용한 휴가</Text>
                 <View style={styles.vacationUsageSummaryRow}>
