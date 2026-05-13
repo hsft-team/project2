@@ -136,6 +136,22 @@ function getOccasionTypeLabel(type) {
   }
 }
 
+function formatFlexibleWorkMinutes(minutes) {
+  const totalMinutes = Number(minutes || 0);
+  if (!totalMinutes) {
+    return "";
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const remainingMinutes = totalMinutes % 60;
+  if (hours > 0 && remainingMinutes > 0) {
+    return `${hours}시간 ${remainingMinutes}분`;
+  }
+  if (hours > 0) {
+    return `${hours}시간`;
+  }
+  return `${remainingMinutes}분`;
+}
+
 function getWorkRequestDetailText(request) {
   const details = [];
   if (request.halfDayTypeLabel) {
@@ -145,7 +161,7 @@ function getWorkRequestDetailText(request) {
     details.push(request.occasionTypeLabel);
   }
   if (request.earlyLeaveMinutes) {
-    details.push(`${request.earlyLeaveMinutes}분 유연근무`);
+    details.push(`${formatFlexibleWorkMinutes(request.earlyLeaveMinutes)} 유연근무`);
   }
   return details.join(" · ");
 }
@@ -1459,7 +1475,7 @@ export default function App() {
       requestDetails.push(`경조사: ${getOccasionTypeLabel(workRequestForm.occasionType)}`);
     }
     if (workRequestForm.requestType === "EARLY_LEAVE") {
-      requestDetails.push(`시간: ${workRequestForm.earlyLeaveMinutes}분`);
+      requestDetails.push(`시간: ${formatFlexibleWorkMinutes(workRequestForm.earlyLeaveMinutes)}`);
     }
     if (workRequestForm.reason.trim()) {
       requestDetails.push(`사유: ${workRequestForm.reason.trim()}`);
@@ -1927,7 +1943,7 @@ export default function App() {
                         <Text style={styles.flexibleWorkStepButtonText}>-</Text>
                       </Pressable>
                       <View style={styles.flexibleWorkValueBox}>
-                        <Text style={styles.flexibleWorkValueText}>{workRequestForm.earlyLeaveMinutes}분</Text>
+                        <Text style={styles.flexibleWorkValueText}>{formatFlexibleWorkMinutes(workRequestForm.earlyLeaveMinutes)}</Text>
                         <Text style={styles.flexibleWorkValueMeta}>30분 단위</Text>
                       </View>
                       <Pressable
