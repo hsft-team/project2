@@ -1218,6 +1218,16 @@ export default function App() {
     const firstDay = new Date(year, month, 1);
     const startDate = new Date(year, month, 1 - firstDay.getDay());
     const todayKey = getSeoulNowInfo().date;
+    const requestsByDate = workRequests.reduce((accumulator, request) => {
+      if (!request.requestDate) {
+        return accumulator;
+      }
+      if (!accumulator[request.requestDate]) {
+        accumulator[request.requestDate] = [];
+      }
+      accumulator[request.requestDate].push(request);
+      return accumulator;
+    }, {});
     const weeks = [];
 
     for (let weekIndex = 0; weekIndex < 6; weekIndex += 1) {
@@ -1226,12 +1236,16 @@ export default function App() {
         const date = new Date(startDate);
         date.setDate(startDate.getDate() + weekIndex * 7 + dayIndex);
         const dateKey = toDateKey(date);
+        const dayRequests = requestsByDate[dateKey] || [];
         week.push({
           dateKey,
           day: date.getDate(),
           inMonth: date.getMonth() === month,
           today: dateKey === todayKey,
           selected: dateKey === workRequestForm.requestDate,
+          requests: dayRequests,
+          approvedCount: dayRequests.filter((request) => request.status === "APPROVED").length,
+          pendingCount: dayRequests.filter((request) => request.status === "PENDING").length,
         });
       }
       weeks.push(week);
@@ -1241,7 +1255,7 @@ export default function App() {
       title: `${year}년 ${month + 1}월`,
       weeks,
     };
-  }, [workRequestCalendarCursor, workRequestForm.requestDate]);
+  }, [workRequestCalendarCursor, workRequestForm.requestDate, workRequests]);
   const vacationCalendarData = useMemo(() => {
     const year = vacationCalendarCursor.getFullYear();
     const month = vacationCalendarCursor.getMonth();
@@ -1994,6 +2008,14 @@ export default function App() {
                             ]}>
                               {day.day}
                             </Text>
+                            {day.requests.length ? (
+                              <View style={styles.vacationCalendarBadgeRow}>
+                                <Text style={styles.vacationCalendarBadge}>{day.requests.length}건</Text>
+                                {day.pendingCount ? (
+                                  <Text style={styles.vacationCalendarPendingBadge}>대기</Text>
+                                ) : null}
+                              </View>
+                            ) : null}
                           </Pressable>
                         ))}
                       </View>
