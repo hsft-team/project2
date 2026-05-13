@@ -1405,6 +1405,17 @@ export default function App() {
     ));
   }
 
+  function adjustFlexibleWorkMinutes(delta) {
+    setWorkRequestForm((prev) => {
+      const currentMinutes = Number(prev.earlyLeaveMinutes || 30);
+      const nextMinutes = Math.max(30, Math.min(480, currentMinutes + delta));
+      return {
+        ...prev,
+        earlyLeaveMinutes: String(nextMinutes),
+      };
+    });
+  }
+
   async function handleSubmitWorkRequest() {
     if (!auth?.token) {
       return;
@@ -1829,24 +1840,27 @@ export default function App() {
                 ) : null}
 
                 {workRequestForm.requestType === "EARLY_LEAVE" ? (
-                  <View style={styles.requestTypeRow}>
-                    {["30", "60", "90", "120", "180", "240"].map((minutes) => (
+                  <View style={styles.flexibleWorkStepperCard}>
+                    <Text style={styles.flexibleWorkStepperLabel}>유연근무 시간</Text>
+                    <View style={styles.flexibleWorkStepperRow}>
                       <Pressable
-                        key={minutes}
-                        onPress={() => setWorkRequestForm((prev) => ({ ...prev, earlyLeaveMinutes: minutes }))}
-                        style={[
-                          styles.requestTypeChip,
-                          workRequestForm.earlyLeaveMinutes === minutes && styles.requestTypeChipActive,
-                        ]}
+                        onPress={() => adjustFlexibleWorkMinutes(-30)}
+                        style={styles.flexibleWorkStepButton}
                       >
-                        <Text style={[
-                          styles.requestTypeChipText,
-                          workRequestForm.earlyLeaveMinutes === minutes && styles.requestTypeChipTextActive,
-                        ]}>
-                          {minutes}분
-                        </Text>
+                        <Text style={styles.flexibleWorkStepButtonText}>-</Text>
                       </Pressable>
-                    ))}
+                      <View style={styles.flexibleWorkValueBox}>
+                        <Text style={styles.flexibleWorkValueText}>{workRequestForm.earlyLeaveMinutes}분</Text>
+                        <Text style={styles.flexibleWorkValueMeta}>30분 단위</Text>
+                      </View>
+                      <Pressable
+                        onPress={() => adjustFlexibleWorkMinutes(30)}
+                        style={styles.flexibleWorkStepButton}
+                      >
+                        <Text style={styles.flexibleWorkStepButtonText}>+</Text>
+                      </Pressable>
+                    </View>
+                    <Text style={styles.flexibleWorkHelpText}>최소 30분, 최대 480분까지 신청할 수 있습니다.</Text>
                   </View>
                 ) : null}
 
@@ -2622,6 +2636,66 @@ const styles = StyleSheet.create({
   },
   requestTypeChipTextActive: {
     color: "#ffffff",
+  },
+  flexibleWorkStepperCard: {
+    backgroundColor: "#f8fafc",
+    borderColor: "#e5edf7",
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  flexibleWorkStepperLabel: {
+    color: "#172033",
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 10,
+  },
+  flexibleWorkStepperRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+  },
+  flexibleWorkStepButton: {
+    alignItems: "center",
+    backgroundColor: "#1463ff",
+    borderRadius: 16,
+    height: 48,
+    justifyContent: "center",
+    width: 52,
+  },
+  flexibleWorkStepButtonText: {
+    color: "#ffffff",
+    fontSize: 24,
+    fontWeight: "900",
+    lineHeight: 28,
+  },
+  flexibleWorkValueBox: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderColor: "#dbe4f0",
+    borderRadius: 16,
+    borderWidth: 1,
+    flex: 1,
+    paddingVertical: 10,
+  },
+  flexibleWorkValueText: {
+    color: "#172033",
+    fontSize: 20,
+    fontWeight: "900",
+    marginBottom: 2,
+  },
+  flexibleWorkValueMeta: {
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  flexibleWorkHelpText: {
+    color: "#64748b",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 10,
   },
   workRequestInput: {
     marginBottom: 12,
