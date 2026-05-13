@@ -99,6 +99,46 @@ function createInitialWorkRequestForm() {
   };
 }
 
+function getWorkRequestTypeLabel(type) {
+  switch (type) {
+    case "VACATION":
+      return "휴가";
+    case "HALF_DAY":
+      return "반차";
+    case "EARLY_LEAVE":
+      return "유연근무";
+    default:
+      return "신청";
+  }
+}
+
+function getWorkRequestDetailText(request) {
+  const details = [];
+  if (request.halfDayTypeLabel) {
+    details.push(request.halfDayTypeLabel);
+  }
+  if (request.earlyLeaveMinutes) {
+    details.push(`${request.earlyLeaveMinutes}분 유연근무`);
+  }
+  return details.join(" · ");
+}
+
+function createMonthCursor(dateValue = new Date()) {
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function toDateKey(dateValue) {
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return getSeoulNowInfo().date;
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function getNoticeHash(message) {
   const normalized = message?.trim();
   if (!normalized) {
@@ -519,6 +559,7 @@ export default function App() {
   const [showMenu, setShowMenu] = useState(false);
   const [showImageSettings, setShowImageSettings] = useState(false);
   const [showWorkRequestModal, setShowWorkRequestModal] = useState(false);
+  const [showVacationInfoModal, setShowVacationInfoModal] = useState(false);
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [locationPermission, setLocationPermission] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
@@ -543,6 +584,8 @@ export default function App() {
   const [workRequests, setWorkRequests] = useState([]);
   const [loadingWorkRequests, setLoadingWorkRequests] = useState(false);
   const [submittingWorkRequest, setSubmittingWorkRequest] = useState(false);
+  const [vacationCalendarCursor, setVacationCalendarCursor] = useState(createMonthCursor());
+  const [selectedVacationDate, setSelectedVacationDate] = useState(getSeoulNowInfo().date);
   const authRef = useRef(null);
 
   useEffect(() => {
@@ -1118,6 +1161,51 @@ export default function App() {
     () => Math.max(38, Math.min(52, Math.round(windowHeight * 0.062))),
     [windowHeight]
   );
+  const vacationCalendarData = useMemo(() => {
+    const year = vacationCalendarCursor.getFullYear();
+    const month = vacationCalendarCursor.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startDate = new Date(year, month, 1 - firstDay.getDay());
+    const todayKey = getSeoulNowInfo().date;
+    const requestsByDate = workRequests.reduce((accumulator, request) => {
+      if (!request.requestDate) {
+        return accumulator;
+      }
+      if (!accumulator[request.requestDate]) {
+        accumulator[request.requestDate] = [];
+      }
+      accumulator[request.requestDate].push(request);
+      return accumulator;
+    }, {});
+    const weeks = [];
+
+    for (let weekIndex = 0; weekIndex < 6; weekIndex += 1) {
+      const week = [];
+      for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + weekIndex * 7 + dayIndex);
+        const dateKey = toDateKey(date);
+        const dayRequests = requestsByDate[dateKey] || [];
+        week.push({
+          dateKey,
+          day: date.getDate(),
+          inMonth: date.getMonth() === month,
+          today: dateKey === todayKey,
+          selected: dateKey === selectedVacationDate,
+          requests: dayRequests,
+          approvedCount: dayRequests.filter((request) => request.status === "APPROVED").length,
+          pendingCount: dayRequests.filter((request) => request.status === "PENDING").length,
+        });
+      }
+      weeks.push(week);
+    }
+
+    return {
+      title: `${year}년 ${month + 1}월`,
+      weeks,
+      selectedRequests: requestsByDate[selectedVacationDate] || [],
+    };
+  }, [selectedVacationDate, vacationCalendarCursor, workRequests]);
   const isLandscapeLayout = windowWidth > windowHeight;
   const bottomLayerResponsiveStyle = isLandscapeLayout
     ? {
@@ -1271,6 +1359,7 @@ export default function App() {
     setAttendance(INITIAL_STATUS);
     setShowNoticeModal(false);
     setShowWorkRequestModal(false);
+    setShowVacationInfoModal(false);
     setAttendanceMeta(createInitialAttendanceMeta());
     setCompanySetting(createInitialCompanySetting());
     setWorkRequestForm(createInitialWorkRequestForm());
@@ -1287,7 +1376,7 @@ export default function App() {
       const response = await getWorkRequests({ token: auth.token });
       setWorkRequests(response.requests || []);
     } catch (error) {
-      showError("근무 신청 조회 실패", error.message || "잠시 후 다시 시도해 주세요.");
+      showError("휴가 정보 조회 실패", error.message || "잠시 후 다시 시도해 주세요.");
     } finally {
       setLoadingWorkRequests(false);
     }
@@ -1297,6 +1386,23 @@ export default function App() {
     setShowMenu(false);
     setShowWorkRequestModal(true);
     await loadMyWorkRequests();
+  }
+
+  async function handleOpenVacationInfoModal() {
+    const today = getSeoulNowInfo().date;
+    setShowMenu(false);
+    setSelectedVacationDate(today);
+    setVacationCalendarCursor(createMonthCursor(today));
+    setShowVacationInfoModal(true);
+    await loadMyWorkRequests();
+  }
+
+  function moveVacationCalendarMonth(offset) {
+    setVacationCalendarCursor((current) => new Date(
+      current.getFullYear(),
+      current.getMonth() + offset,
+      1
+    ));
   }
 
   async function handleSubmitWorkRequest() {
@@ -1318,9 +1424,9 @@ export default function App() {
       });
       setWorkRequestForm(createInitialWorkRequestForm());
       await loadMyWorkRequests();
-      Alert.alert("근무 신청 완료", response.message || "근무 신청이 등록되었습니다.");
+      Alert.alert("휴가 신청 완료", response.message || "신청이 등록되었습니다.");
     } catch (error) {
-      showError("근무 신청 실패", error.message || "잠시 후 다시 시도해 주세요.");
+      showError("휴가 신청 실패", error.message || "잠시 후 다시 시도해 주세요.");
     } finally {
       setSubmittingWorkRequest(false);
     }
@@ -1331,11 +1437,11 @@ export default function App() {
       return;
     }
 
-    confirmAction("근무 신청 취소", "이 신청을 취소하시겠어요?", async () => {
+    confirmAction("신청 취소", "이 신청을 취소하시겠어요?", async () => {
       try {
         const response = await cancelWorkRequest({ token: auth.token, requestId });
         await loadMyWorkRequests();
-        Alert.alert("신청 취소 완료", response.message || "근무 신청이 취소되었습니다.");
+        Alert.alert("신청 취소 완료", response.message || "신청이 취소되었습니다.");
       } catch (error) {
         showError("신청 취소 실패", error.message || "잠시 후 다시 시도해 주세요.");
       }
@@ -1612,10 +1718,17 @@ export default function App() {
               onPress={handleOpenWorkRequestModal}
               style={styles.menuItem}
             >
-              <Text style={styles.menuItemTitle}>근무 신청</Text>
+              <Text style={styles.menuItemTitle}>휴가 신청</Text>
               <Text style={styles.menuItemMeta}>
                 {companySetting.workRequestApprovalRequired ? "승인형" : "즉시 확정"}
               </Text>
+            </Pressable>
+            <Pressable
+              onPress={handleOpenVacationInfoModal}
+              style={styles.menuItem}
+            >
+              <Text style={styles.menuItemTitle}>내 휴가 정보</Text>
+              <Text style={styles.menuItemMeta}>달력으로 보기</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -1643,9 +1756,9 @@ export default function App() {
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeaderRow}>
               <View style={styles.sheetHeaderTextWrap}>
-                <Text style={styles.sheetTitle}>근무 신청</Text>
+                <Text style={styles.sheetTitle}>휴가 신청</Text>
                 <Text style={styles.sheetDescription}>
-                  햄버거 메뉴에서 휴가, 반차, 조기퇴근 신청을 등록하고 내역을 확인할 수 있습니다.
+                  휴가, 반차, 유연근무 신청을 등록할 수 있습니다. 반차를 사용한 날에도 유연근무를 함께 신청할 수 있습니다.
                 </Text>
               </View>
               <Pressable onPress={() => setShowWorkRequestModal(false)} style={styles.sheetCloseButton}>
@@ -1679,7 +1792,7 @@ export default function App() {
                         styles.requestTypeChipText,
                         workRequestForm.requestType === type && styles.requestTypeChipTextActive,
                       ]}>
-                        {type === "VACATION" ? "휴가" : type === "HALF_DAY" ? "반차" : "조기퇴근"}
+                        {getWorkRequestTypeLabel(type)}
                       </Text>
                     </Pressable>
                   ))}
@@ -1781,7 +1894,118 @@ export default function App() {
                       <Text style={styles.workRequestCardMeta}>
                         {request.requestDate}
                         {request.halfDayTypeLabel ? ` · ${request.halfDayTypeLabel}` : ""}
-                        {request.earlyLeaveMinutes ? ` · ${request.earlyLeaveMinutes}분 조기퇴근` : ""}
+                        {getWorkRequestDetailText(request) ? ` · ${getWorkRequestDetailText(request)}` : ""}
+                      </Text>
+                      <Text style={styles.workRequestCardReason}>{request.reason || "사유 없음"}</Text>
+                      <Text style={styles.workRequestCardMeta}>등록 {formatDateTime(request.createdAt)}</Text>
+                      {request.reviewedByName ? (
+                        <Text style={styles.workRequestCardMeta}>
+                          검토 {request.reviewedByName} · {formatDateTime(request.reviewedAt)}
+                        </Text>
+                      ) : null}
+                      {request.cancelable ? (
+                        <Pressable onPress={() => handleCancelWorkRequest(request.id)} style={styles.workRequestCancelButton}>
+                          <Text style={styles.workRequestCancelButtonText}>신청 취소</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ))
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showVacationInfoModal}
+        onRequestClose={() => setShowVacationInfoModal(false)}
+      >
+        <View style={styles.sheetBackdrop}>
+          <View style={styles.sheetCard}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeaderRow}>
+              <View style={styles.sheetHeaderTextWrap}>
+                <Text style={styles.sheetTitle}>내 휴가 정보</Text>
+                <Text style={styles.sheetDescription}>
+                  휴가, 반차, 유연근무 신청 내역을 월별 달력으로 확인할 수 있습니다.
+                </Text>
+              </View>
+              <Pressable onPress={() => setShowVacationInfoModal(false)} style={styles.sheetCloseButton}>
+                <Text style={styles.sheetCloseButtonText}>닫기</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.workRequestScroll} contentContainerStyle={styles.workRequestScrollContent}>
+              <View style={styles.vacationCalendarHeader}>
+                <Pressable onPress={() => moveVacationCalendarMonth(-1)} style={styles.calendarMoveButton}>
+                  <Text style={styles.calendarMoveButtonText}>이전</Text>
+                </Pressable>
+                <Text style={styles.vacationCalendarTitle}>{vacationCalendarData.title}</Text>
+                <Pressable onPress={() => moveVacationCalendarMonth(1)} style={styles.calendarMoveButton}>
+                  <Text style={styles.calendarMoveButtonText}>다음</Text>
+                </Pressable>
+              </View>
+              <View style={styles.vacationCalendarWeekdays}>
+                {["일", "월", "화", "수", "목", "금", "토"].map((label) => (
+                  <Text key={label} style={styles.vacationCalendarWeekday}>{label}</Text>
+                ))}
+              </View>
+              <View style={styles.vacationCalendarGrid}>
+                {vacationCalendarData.weeks.map((week, weekIndex) => (
+                  <View key={`week-${weekIndex}`} style={styles.vacationCalendarWeek}>
+                    {week.map((day) => (
+                      <Pressable
+                        key={day.dateKey}
+                        onPress={() => setSelectedVacationDate(day.dateKey)}
+                        style={[
+                          styles.vacationCalendarDay,
+                          !day.inMonth && styles.vacationCalendarDayMuted,
+                          day.today && styles.vacationCalendarDayToday,
+                          day.selected && styles.vacationCalendarDaySelected,
+                        ]}
+                      >
+                        <Text style={[
+                          styles.vacationCalendarDayText,
+                          day.selected && styles.vacationCalendarDayTextSelected,
+                        ]}>
+                          {day.day}
+                        </Text>
+                        {day.requests.length ? (
+                          <View style={styles.vacationCalendarBadgeRow}>
+                            <Text style={styles.vacationCalendarBadge}>{day.requests.length}건</Text>
+                            {day.pendingCount ? (
+                              <Text style={styles.vacationCalendarPendingBadge}>대기</Text>
+                            ) : null}
+                          </View>
+                        ) : null}
+                      </Pressable>
+                    ))}
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.workRequestSection}>
+                <View style={styles.workRequestListHeader}>
+                  <Text style={styles.workRequestSectionTitle}>{selectedVacationDate} 상세</Text>
+                  <Pressable onPress={loadMyWorkRequests}>
+                    <Text style={styles.workRequestRefresh}>새로고침</Text>
+                  </Pressable>
+                </View>
+                {loadingWorkRequests ? (
+                  <ActivityIndicator color="#1463ff" />
+                ) : vacationCalendarData.selectedRequests.length === 0 ? (
+                  <Text style={styles.workRequestEmpty}>선택한 날짜의 휴가 정보가 없습니다.</Text>
+                ) : (
+                  vacationCalendarData.selectedRequests.map((request) => (
+                    <View key={`vacation-${request.id}`} style={styles.workRequestCard}>
+                      <View style={styles.workRequestCardHeader}>
+                        <Text style={styles.workRequestCardTitle}>{request.requestTypeLabel || getWorkRequestTypeLabel(request.requestType)}</Text>
+                        <Text style={styles.workRequestStatus}>{request.statusLabel}</Text>
+                      </View>
+                      <Text style={styles.workRequestCardMeta}>
+                        {getWorkRequestDetailText(request) || "종일"}
                       </Text>
                       <Text style={styles.workRequestCardReason}>{request.reason || "사유 없음"}</Text>
                       <Text style={styles.workRequestCardMeta}>등록 {formatDateTime(request.createdAt)}</Text>
@@ -2275,6 +2499,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     backgroundColor: "#f8fafc",
+    marginBottom: 6,
   },
   menuItemTitle: {
     color: "#172033",
@@ -2469,6 +2694,92 @@ const styles = StyleSheet.create({
     color: "#4338ca",
     fontSize: 13,
     fontWeight: "800",
+  },
+  vacationCalendarHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  vacationCalendarTitle: {
+    color: "#172033",
+    fontSize: 17,
+    fontWeight: "900",
+  },
+  calendarMoveButton: {
+    backgroundColor: "#edf1f7",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  calendarMoveButtonText: {
+    color: "#334155",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  vacationCalendarWeekdays: {
+    flexDirection: "row",
+    marginBottom: 6,
+  },
+  vacationCalendarWeekday: {
+    flex: 1,
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  vacationCalendarGrid: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 18,
+    padding: 8,
+    marginBottom: 18,
+  },
+  vacationCalendarWeek: {
+    flexDirection: "row",
+  },
+  vacationCalendarDay: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 12,
+    padding: 6,
+    margin: 2,
+    backgroundColor: "#ffffff",
+    borderColor: "#edf2f7",
+    borderWidth: 1,
+  },
+  vacationCalendarDayMuted: {
+    opacity: 0.42,
+  },
+  vacationCalendarDayToday: {
+    borderColor: "#1463ff",
+  },
+  vacationCalendarDaySelected: {
+    backgroundColor: "#1463ff",
+    borderColor: "#1463ff",
+  },
+  vacationCalendarDayText: {
+    color: "#172033",
+    fontSize: 12,
+    fontWeight: "900",
+    marginBottom: 4,
+  },
+  vacationCalendarDayTextSelected: {
+    color: "#ffffff",
+  },
+  vacationCalendarBadgeRow: {
+    gap: 3,
+  },
+  vacationCalendarBadge: {
+    alignSelf: "flex-start",
+    color: "#1463ff",
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  vacationCalendarPendingBadge: {
+    alignSelf: "flex-start",
+    color: "#f97316",
+    fontSize: 10,
+    fontWeight: "900",
   },
   settingRow: {
     flexDirection: "row",

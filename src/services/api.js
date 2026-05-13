@@ -95,10 +95,14 @@ function normalizeCompanySetting(data) {
 }
 
 function normalizeWorkRequest(data) {
+  const requestType = data?.requestType || "";
+  const requestTypeLabel = requestType === "EARLY_LEAVE"
+    ? "유연근무"
+    : data?.requestTypeLabel || "";
   return {
     id: data?.id || null,
-    requestType: data?.requestType || "",
-    requestTypeLabel: data?.requestTypeLabel || "",
+    requestType,
+    requestTypeLabel,
     status: data?.status || "",
     statusLabel: data?.statusLabel || "",
     requestDate: data?.requestDate || "",
@@ -396,7 +400,7 @@ export async function getWorkRequests({ token }) {
 export async function createWorkRequest({ token, requestType, requestDate, halfDayType, earlyLeaveMinutes, reason }) {
   if (DEMO_MODE) {
     return {
-      message: "데모 모드에서 근무 신청이 등록되었습니다.",
+      message: "데모 모드에서 신청이 등록되었습니다.",
       request: normalizeWorkRequest({
         id: Date.now(),
         requestType,
@@ -425,18 +429,18 @@ export async function createWorkRequest({ token, requestType, requestDate, halfD
       }
     );
     return {
-      message: response.data?.message || "근무 신청이 등록되었습니다.",
+      message: response.data?.message || "신청이 등록되었습니다.",
       request: normalizeWorkRequest(response.data?.request),
     };
   } catch (error) {
-    throw new Error(getErrorMessage(error, "근무 신청 등록에 실패했습니다."));
+    throw new Error(getErrorMessage(error, "신청 등록에 실패했습니다."));
   }
 }
 
 export async function cancelWorkRequest({ token, requestId }) {
   if (DEMO_MODE) {
     return {
-      message: "데모 모드에서 근무 신청이 취소되었습니다.",
+      message: "데모 모드에서 신청이 취소되었습니다.",
       request: normalizeWorkRequest({
         id: requestId,
         status: "CANCELED",
@@ -457,10 +461,10 @@ export async function cancelWorkRequest({ token, requestId }) {
       }
     );
     return {
-      message: response.data?.message || "근무 신청이 취소되었습니다.",
+      message: response.data?.message || "신청이 취소되었습니다.",
       request: normalizeWorkRequest(response.data?.request),
     };
   } catch (error) {
-    throw new Error(getErrorMessage(error, "근무 신청 취소에 실패했습니다."));
+    throw new Error(getErrorMessage(error, "신청 취소에 실패했습니다."));
   }
 }
