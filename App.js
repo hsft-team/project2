@@ -1601,20 +1601,27 @@ export default function App() {
     }, "default");
   }
 
-  async function handleCancelWorkRequest(requestId) {
+  async function handleCancelWorkRequest(request) {
     if (!auth?.token) {
       return;
     }
 
-    confirmAction("신청 취소", "이 신청을 취소하시겠어요?", async () => {
-      try {
-        const response = await cancelWorkRequest({ token: auth.token, requestId });
-        await loadMyWorkRequests();
-        Alert.alert("신청 취소 완료", response.message || "신청이 취소되었습니다.");
-      } catch (error) {
-        showError("신청 취소 실패", error.message || "잠시 후 다시 시도해 주세요.");
+    const isApprovedRequest = request.status === "APPROVED";
+    confirmAction(
+      isApprovedRequest ? "취소 요청" : "신청 취소",
+      isApprovedRequest
+        ? "승인된 신청은 관리자 승인 후 취소됩니다. 취소 요청을 등록할까요?"
+        : "이 신청을 취소하시겠어요?",
+      async () => {
+        try {
+          const response = await cancelWorkRequest({ token: auth.token, requestId: request.id });
+          await loadMyWorkRequests();
+          Alert.alert(isApprovedRequest ? "취소 요청 완료" : "신청 취소 완료", response.message || "신청이 취소되었습니다.");
+        } catch (error) {
+          showError("신청 취소 실패", error.message || "잠시 후 다시 시도해 주세요.");
+        }
       }
-    });
+    );
   }
 
   function handleOpenInviteInApp() {
@@ -2155,8 +2162,8 @@ export default function App() {
                         </Text>
                       ) : null}
                       {request.cancelable ? (
-                        <Pressable onPress={() => handleCancelWorkRequest(request.id)} style={styles.workRequestCancelButton}>
-                          <Text style={styles.workRequestCancelButtonText}>신청 취소</Text>
+                        <Pressable onPress={() => handleCancelWorkRequest(request)} style={styles.workRequestCancelButton}>
+                          <Text style={styles.workRequestCancelButtonText}>{request.status === "APPROVED" ? "취소 요청" : "신청 취소"}</Text>
                         </Pressable>
                       ) : null}
                     </View>
@@ -2286,8 +2293,8 @@ export default function App() {
                         </Text>
                       ) : null}
                       {request.cancelable ? (
-                        <Pressable onPress={() => handleCancelWorkRequest(request.id)} style={styles.workRequestCancelButton}>
-                          <Text style={styles.workRequestCancelButtonText}>신청 취소</Text>
+                        <Pressable onPress={() => handleCancelWorkRequest(request)} style={styles.workRequestCancelButton}>
+                          <Text style={styles.workRequestCancelButtonText}>{request.status === "APPROVED" ? "취소 요청" : "신청 취소"}</Text>
                         </Pressable>
                       ) : null}
                     </View>

@@ -448,11 +448,11 @@ export async function createWorkRequest({ token, requestType, requestDate, halfD
 export async function cancelWorkRequest({ token, requestId }) {
   if (DEMO_MODE) {
     return {
-      message: "데모 모드에서 신청이 취소되었습니다.",
+      message: "데모 모드에서 취소 요청이 등록되었습니다.",
       request: normalizeWorkRequest({
         id: requestId,
-        status: "CANCELED",
-        statusLabel: "취소",
+        status: "CANCEL_REQUESTED",
+        statusLabel: "취소 요청",
         cancelable: false,
       }),
     };
@@ -469,7 +469,7 @@ export async function cancelWorkRequest({ token, requestId }) {
       }
     );
     return {
-      message: response.data?.message || "신청이 취소되었습니다.",
+      message: response.data?.message || "취소 요청이 등록되었습니다.",
       request: normalizeWorkRequest(response.data?.request),
     };
   } catch (error) {
