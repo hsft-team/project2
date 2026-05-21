@@ -91,6 +91,7 @@ function normalizeCompanySetting(data) {
     noticeMessage: data.noticeMessage || "",
     mobileSkinKey: data.mobileSkinKey || "classic",
     workRequestApprovalRequired: data.workRequestApprovalRequired !== false,
+    workRequestEnabled: data.workRequestEnabled !== false,
   };
 }
 
