@@ -85,6 +85,7 @@ function createInitialCompanySetting(overrides = {}) {
     noticeMessage: "",
     mobileSkinKey: "classic",
     workRequestApprovalRequired: true,
+    workRequestEnabled: true,
     ...overrides,
   };
 }
@@ -1034,7 +1035,7 @@ export default function App() {
       try {
         const nextCompanySetting = await getCompanySetting({ token: auth.token });
         if (active && nextCompanySetting) {
-          setCompanySetting(nextCompanySetting);
+          setCompanySetting(createInitialCompanySetting(nextCompanySetting));
           setAttendanceMeta((prev) => ({
             ...prev,
             companyName: nextCompanySetting.companyName || prev.companyName,
@@ -1506,6 +1507,10 @@ export default function App() {
 
   async function handleOpenWorkRequestModal() {
     setShowMenu(false);
+    if (companySetting.workRequestEnabled === false) {
+      Alert.alert("휴가 신청", "현재 회사 설정에서 휴가신청 기능을 사용하지 않습니다.");
+      return;
+    }
     setWorkRequestCalendarCursor(createMonthCursor(workRequestForm.requestDate));
     setShowWorkRequestModal(true);
     await loadMyWorkRequests();
@@ -1554,6 +1559,10 @@ export default function App() {
 
   async function handleSubmitWorkRequest() {
     if (!auth?.token) {
+      return;
+    }
+    if (companySetting.workRequestEnabled === false) {
+      showError("휴가 신청 불가", "현재 회사 설정에서 휴가신청 기능을 사용하지 않습니다.");
       return;
     }
 
@@ -1890,15 +1899,17 @@ export default function App() {
       >
         <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
           <View style={styles.menuCard}>
-            <Pressable
-              onPress={handleOpenWorkRequestModal}
-              style={styles.menuItem}
-            >
-              <Text style={styles.menuItemTitle}>휴가 신청</Text>
-              <Text style={styles.menuItemMeta}>
-                {companySetting.workRequestApprovalRequired ? "승인형" : "즉시 확정"}
-              </Text>
-            </Pressable>
+            {companySetting.workRequestEnabled !== false ? (
+              <Pressable
+                onPress={handleOpenWorkRequestModal}
+                style={styles.menuItem}
+              >
+                <Text style={styles.menuItemTitle}>휴가 신청</Text>
+                <Text style={styles.menuItemMeta}>
+                  {companySetting.workRequestApprovalRequired ? "승인형" : "즉시 확정"}
+                </Text>
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={() => {
                 setShowMenu(false);
