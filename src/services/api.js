@@ -257,6 +257,26 @@ export async function getTodayAttendance({ token }) {
   }
 }
 
+export async function getAttendanceHistory({ token, month, signal }) {
+  if (DEMO_MODE) return [];
+  try {
+    const response = await api.get("/attendance/history", {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { month },
+      signal,
+    });
+    if (!Array.isArray(response.data)) {
+      throw new Error("출근 기록 응답을 확인할 수 없습니다.");
+    }
+    return response.data.map((record) => ({
+      ...normalizeTodayAttendance(record),
+      late: Boolean(record.late),
+    }));
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "출근 기록을 불러오지 못했습니다."));
+  }
+}
+
 export async function getCompanySetting({ token }) {
   if (DEMO_MODE) {
     return normalizeCompanySetting({

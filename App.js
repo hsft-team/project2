@@ -25,6 +25,7 @@ import {
   COMPANY_RADIUS_METERS,
 } from "./src/constants/company";
 import AttendanceMap from "./src/components/AttendanceMap";
+import AttendanceHistoryModal from "./src/components/AttendanceHistoryModal";
 import {
   cancelWorkRequest,
   checkIn,
@@ -608,6 +609,7 @@ export default function App() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [showCheckOutConfirm, setShowCheckOutConfirm] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showAttendanceHistory, setShowAttendanceHistory] = useState(false);
   const [showImageSettings, setShowImageSettings] = useState(false);
   const [showWorkRequestModal, setShowWorkRequestModal] = useState(false);
   const [showVacationInfoModal, setShowVacationInfoModal] = useState(false);
@@ -1899,6 +1901,17 @@ export default function App() {
       >
         <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
           <View style={styles.menuCard}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setShowMenu(false);
+                setShowAttendanceHistory(true);
+              }}
+              style={styles.menuItem}
+            >
+              <Text style={styles.menuItemTitle}>출근 기록</Text>
+              <Text style={styles.menuItemMeta}>달력으로 내 출퇴근 확인</Text>
+            </Pressable>
             {companySetting.workRequestEnabled !== false ? (
               <Pressable
                 onPress={handleOpenWorkRequestModal}
@@ -1925,6 +1938,13 @@ export default function App() {
           </View>
         </Pressable>
       </Modal>
+      {showAttendanceHistory ? (
+        <AttendanceHistoryModal
+          key={auth.token}
+          token={auth.token}
+          onClose={() => setShowAttendanceHistory(false)}
+        />
+      ) : null}
       <Modal
         animationType="slide"
         transparent
